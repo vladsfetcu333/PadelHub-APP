@@ -56,15 +56,23 @@ export type UpdateProfileInput = z.infer<typeof UpdateProfileSchema>;
 
 const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
 
-export const AvailabilitySchema = z
-  .object({
-    dayOfWeek: z.number().int().min(0).max(6),
-    startTime: z.string().regex(HHMM, 'Format invalid (HH:mm)'),
-    endTime: z.string().regex(HHMM, 'Format invalid (HH:mm)'),
-  })
-  .refine((v) => v.startTime < v.endTime, {
-    message: 'Ora de început trebuie să fie înaintea orei de sfârșit',
-    path: ['endTime'],
-  });
+// Base object — usable for `.partial()` on update routes
+export const AvailabilityBaseSchema = z.object({
+  dayOfWeek: z.number().int().min(0).max(6),
+  startTime: z.string().regex(HHMM, 'Format invalid (HH:mm)'),
+  endTime: z.string().regex(HHMM, 'Format invalid (HH:mm)'),
+});
+
+// Whole-object schema with refinement, used on create
+export const AvailabilitySchema = AvailabilityBaseSchema.refine((v) => v.startTime < v.endTime, {
+  message: 'Ora de început trebuie să fie înaintea orei de sfârșit',
+  path: ['endTime'],
+});
+
+export const AvailabilityUpdateSchema = AvailabilityBaseSchema.partial().refine(
+  (v) => v.startTime == null || v.endTime == null || v.startTime < v.endTime,
+  { message: 'Ora de început trebuie să fie înaintea orei de sfârșit', path: ['endTime'] },
+);
 
 export type AvailabilityInput = z.infer<typeof AvailabilitySchema>;
+export type AvailabilityUpdateInput = z.infer<typeof AvailabilityUpdateSchema>;
