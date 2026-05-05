@@ -1,3 +1,8 @@
+// Padel Platform — Phase 1 domain model
+// Note: @db.Text annotations are omitted because they are PostgreSQL/MySQL-specific.
+// SQLite stores all text fields as TEXT regardless. When migrating to Postgres in
+// Phase 4, re-add @db.Text on: User.bio, User.coachCertifications, Club.description.
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,7 +12,208 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model HealthCheck {
-  id        Int      @id @default(autoincrement())
+model User {
+  id           String  @id @default(cuid())
+  email        String  @unique
+  passwordHash String
+  username     String  @unique
+  phone        String?
+  avatarUrl    String?
+
+  // Personal
+  firstName   String
+  lastName    String
+  dateOfBirth DateTime
+  gender      Gender
+  city        String
+  bio         String? // up to 200 chars enforced in Zod
+
+  // Padel-specific
+  padelLevel    Float         @default(3.0)
+  preferredSide PreferredSide
+  dominantHand  DominantHand
+  playStyle     PlayStyle?
+  playFrequency PlayFrequency
+  goal          PlayerGoal
+
+  // Glicko-2 (computed in Phase 2)
+  glickoRating     Float @default(1500)
+  glickoRD         Float @default(350)
+  glickoVolatility Float @default(0.06)
+
+  // Role
+  role                UserRole @default(PLAYER)
+  isCoach             Boolean  @default(false)
+  coachCertifications String? // JSON array as string for SQLite
+
+  // Matching prefs
+  prefMaxLevelDiff     Float?
+  prefGenderFilter     GenderFilter @default(ANY)
+  prefAgeMin           Int?
+  prefAgeMax           Int?
+  prefRequireGoalMatch Boolean      @default(false)
+
+  // Settings
+  notifyByEmail     Boolean           @default(true)
+  notifyInApp       Boolean           @default(true)
+  profileVisibility ProfileVisibility @default(PUBLIC)
+
+  // Status
+  isActive        Boolean   @default(true)
+  isVerified      Boolean   @default(false)
+  emailVerifiedAt DateTime?
+
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  availabilities Availability[]
+  favoriteClubs  UserFavoriteClub[]
+  ownedClubs     Club[]             @relation("ClubOwner")
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+  PREFER_NOT_TO_SAY
+}
+
+enum PreferredSide {
+  LEFT
+  RIGHT
+  BOTH
+}
+
+enum DominantHand {
+  LEFT
+  RIGHT
+}
+
+enum PlayStyle {
+  DEFENSIVE
+  OFFENSIVE
+  BALANCED
+  BUILDER
+}
+
+enum PlayFrequency {
+  ONCE_WEEK
+  TWO_THREE_WEEK
+  FOUR_PLUS_WEEK
+}
+
+enum PlayerGoal {
+  RECREATIONAL
+  COMPETITIVE
+  MIXED
+}
+
+enum UserRole {
+  PLAYER
+  COACH
+  CLUB_OWNER
+  ADMIN
+}
+
+enum GenderFilter {
+  ANY
+  MALE_ONLY
+  FEMALE_ONLY
+}
+
+enum ProfileVisibility {
+  PUBLIC
+  FRIENDS_ONLY
+  PRIVATE
+}
+
+model Availability {
+  id        String @id @default(cuid())
+  userId    String
+  dayOfWeek Int // 0=Sunday, 6=Saturday
+  startTime String // "HH:mm"
+  endTime   String // "HH:mm"
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Club {
+  id          String  @id @default(cuid())
+  slug        String  @unique
+  name        String
+  description String?
+  address     String
+  city        String
+  latitude    Float
+  longitude   Float
+  phone       String?
+  email       String?
+  website     String?
+
+  photos String @default("[]") // JSON array of URLs
+
+  // Facilities
+  hasLockerRoom   Boolean @default(false)
+  hasShowers      Boolean @default(false)
+  hasCafe         Boolean @default(false)
+  hasParking      Boolean @default(false)
+  hasShop         Boolean @default(false)
+  hasSchool       Boolean @default(false)
+  hasRacketRental Boolean @default(false)
+
+  businessHours String @default("{}") // JSON: { "monday": {"open":"08:00","close":"23:00"}, ... }
+
+  isVerified Boolean @default(false)
+  ownerId    String?
+  owner      User?   @relation("ClubOwner", fields: [ownerId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  courts      Court[]
+  favoritedBy UserFavoriteClub[]
+
+  @@index([city])
+  @@index([latitude, longitude])
+}
+
+model Court {
+  id               String        @id @default(cuid())
+  clubId           String
+  name             String
+  type             CourtType
+  location         CourtLocation
+  surface          String?
+  pricePerHour     Float?
+  pricePerHourPeak Float?
+  isActive         Boolean       @default(true)
+
+  club Club @relation(fields: [clubId], references: [id], onDelete: Cascade)
+
+  @@index([clubId])
+}
+
+enum CourtType {
+  PANORAMIC
+  TRADITIONAL
+  SINGLE_PADEL
+}
+
+enum CourtLocation {
+  INDOOR
+  OUTDOOR
+}
+
+model UserFavoriteClub {
+  userId    String
+  clubId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  club Club @relation(fields: [clubId], references: [id], onDelete: Cascade)
+
+  @@id([userId, clubId])
 }
