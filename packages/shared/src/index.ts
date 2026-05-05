@@ -1,2 +1,7 @@
-// Phase 0 — placeholder. Shared types, Zod schemas, and constants will be added Phase 1+.
-export {};
+export * from './constants/enums';
+export * from './schemas/auth';
+export * from './schemas/profile';
+export * from './schemas/club';
+export * from './types/api';
+export { ro } from './i18n/ro';
+export type { RoCopy } from './i18n/ro';
