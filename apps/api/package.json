@@ -10,20 +10,28 @@
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
     "db:studio": "prisma studio",
+    "db:reset": "prisma migrate reset --force",
     "lint": "eslint src --ext .ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@padel/shared": "*",
     "@prisma/client": "^6.8.2",
+    "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
     "pino": "^9.6.0",
-    "pino-pretty": "^13.0.0"
+    "pino-pretty": "^13.0.0",
+    "slugify": "^1.6.6",
+    "zod": "^3.24.4"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.1",
+    "@types/jsonwebtoken": "^9.0.9",
     "@types/node": "^22.15.18",
     "prisma": "^6.8.2",
     "tsx": "^4.19.4"
