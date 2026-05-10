@@ -10,11 +10,14 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { EditProfileForm } from '@/components/profile/EditProfileForm';
 import { AvailabilityEditor } from '@/components/profile/AvailabilityEditor';
 import { MatchingPreferencesForm } from '@/components/profile/MatchingPreferencesForm';
+import { RatingTab } from '@/components/profile/RatingTab';
 
 export default function ProfilePage() {
   const user = useAuth((s) => s.user);
   const [params, setParams] = useSearchParams();
-  const tab = params.get('tab') === 'availability' ? 'availability' : 'profile';
+  const tabParam = params.get('tab');
+  const tab =
+    tabParam === 'availability' ? 'availability' : tabParam === 'rating' ? 'rating' : 'profile';
 
   if (!user) return null;
 
@@ -46,14 +49,15 @@ export default function ProfilePage() {
         value={tab}
         onValueChange={(v) => {
           const next = new URLSearchParams(params);
-          if (v === 'availability') next.set('tab', 'availability');
-          else next.delete('tab');
+          if (v === 'profile') next.delete('tab');
+          else next.set('tab', v);
           setParams(next, { replace: true });
         }}
       >
         <TabsList>
           <TabsTrigger value="profile">{ro.profile.tabProfile}</TabsTrigger>
           <TabsTrigger value="availability">{ro.profile.tabAvailability}</TabsTrigger>
+          <TabsTrigger value="rating">{ro.rating.tabTitle}</TabsTrigger>
         </TabsList>
         <TabsContent value="profile">
           <Card>
@@ -81,6 +85,9 @@ export default function ProfilePage() {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+        <TabsContent value="rating">
+          <RatingTab user={user} />
         </TabsContent>
       </Tabs>
     </div>
