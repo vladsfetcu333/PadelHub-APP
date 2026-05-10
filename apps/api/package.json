@@ -12,7 +12,9 @@
     "db:studio": "prisma studio",
     "db:reset": "prisma migrate reset --force",
     "lint": "eslint src --ext .ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@padel/shared": "*",
@@ -34,6 +36,7 @@
     "@types/jsonwebtoken": "^9.0.9",
     "@types/node": "^22.15.18",
     "prisma": "^6.8.2",
-    "tsx": "^4.19.4"
+    "tsx": "^4.19.4",
+    "vitest": "^3.2.4"
   }
 }
