@@ -10,6 +10,8 @@ import usersRouter from './routes/users.js';
 import clubsRouter from './routes/clubs.js';
 import matchingRouter from './routes/matching.js';
 import openMatchesRouter from './routes/openMatches.js';
+import matchesRouter from './routes/matches.js';
+import { startMatchExpiryJob } from './services/matchService.js';
 
 const app = express();
 
@@ -23,9 +25,11 @@ app.use('/api/users', usersRouter);
 app.use('/api/clubs', clubsRouter);
 app.use('/api/matching', matchingRouter);
 app.use('/api/open-matches', openMatchesRouter);
+app.use('/api/matches', matchesRouter);
 
 app.use(errorHandler);
 
 app.listen(env.port, () => {
   logger.info(`API running on http://localhost:${env.port} [${env.nodeEnv}]`);
+  startMatchExpiryJob();
 });
