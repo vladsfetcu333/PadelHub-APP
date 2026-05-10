@@ -4,6 +4,7 @@ import { hashPassword, verifyPassword } from '../lib/password.js';
 import { signToken } from '../lib/jwt.js';
 import { toSelfUser } from '../lib/userDto.js';
 import { badRequest, conflict, notFound, unauthorized } from '../lib/httpError.js';
+import { initialRatingFromLevel } from '../lib/rating/glicko2.js';
 
 export async function register(input: RegisterInput): Promise<AuthResponse> {
   const existingEmail = await prisma.user.findUnique({ where: { email: input.email } });
@@ -13,6 +14,10 @@ export async function register(input: RegisterInput): Promise<AuthResponse> {
   if (existingUsername) throw conflict('Username is already taken');
 
   const passwordHash = await hashPassword(input.password);
+  // Seed Glicko-2 rating from the declared padel level. The mapping is the same
+  // anchor table used by the matching algorithm's "effective level" computation
+  // and the profile's rating-to-level display, so all three stay consistent.
+  const initialRating = initialRatingFromLevel(input.padelLevel);
   const user = await prisma.user.create({
     data: {
       email: input.email,
@@ -28,6 +33,9 @@ export async function register(input: RegisterInput): Promise<AuthResponse> {
       dominantHand: input.dominantHand,
       playFrequency: input.playFrequency,
       goal: input.goal,
+      glickoRating: initialRating.rating,
+      glickoRD: initialRating.rd,
+      glickoVolatility: initialRating.volatility,
     },
   });
 
