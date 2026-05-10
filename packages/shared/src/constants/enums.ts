@@ -35,6 +35,22 @@ export type CourtType = (typeof CourtType)[number];
 export const CourtLocation = ['INDOOR', 'OUTDOOR'] as const;
 export type CourtLocation = (typeof CourtLocation)[number];
 
+export const OpenMatchStatus = ['OPEN', 'FULL', 'CANCELLED', 'COMPLETED'] as const;
+export type OpenMatchStatus = (typeof OpenMatchStatus)[number];
+
+export const MatchType = ['OPEN_MATCH', 'TOURNAMENT', 'FRIENDLY'] as const;
+export type MatchType = (typeof MatchType)[number];
+
+export const MatchStatus = [
+  'SCHEDULED',
+  'IN_PROGRESS',
+  'PENDING_CONFIRMATION',
+  'VALIDATED',
+  'EXPIRED',
+  'CANCELLED',
+] as const;
+export type MatchStatus = (typeof MatchStatus)[number];
+
 // Step values allowed for the Playtomic-style padel level (1.0–7.0 in 0.5 increments)
 export const PADEL_LEVELS = [
   1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0,
