@@ -6,13 +6,15 @@ A web platform for padel players in Romania — find compatible partners, discov
 
 ## Tech Stack
 
-| Layer     | Technology                                                                |
-| --------- | ------------------------------------------------------------------------- |
-| Backend   | Node.js (LTS) · Express 5 · TypeScript · Prisma · SQLite (dev)            |
-| Frontend  | React 18 · Vite · TypeScript · Tailwind CSS · shadcn/ui · React Router v6 |
-| Shared    | `@padel/shared` — types, Zod schemas, constants                           |
-| Tooling   | ESLint · Prettier · Husky · lint-staged                                   |
-| Future DB | PostgreSQL + pgvector (Phase 4)                                           |
+| Layer    | Technology                                                              |
+| -------- | ----------------------------------------------------------------------- |
+| Backend  | Node.js 20+ · Express 5 · TypeScript · Prisma · SQLite (Postgres in P4) |
+| Auth     | JSON Web Tokens (7-day) · bcryptjs · Zod validation                     |
+| Frontend | React 18 · Vite · TypeScript · Tailwind CSS · shadcn/ui · Zustand       |
+| Forms    | react-hook-form + @hookform/resolvers + Zod                             |
+| Map      | Leaflet + OpenStreetMap (no API key)                                    |
+| Shared   | `@padel/shared` — Zod schemas · types · enums · Romanian i18n           |
+| Tooling  | ESLint · Prettier · Husky · lint-staged                                 |
 
 ---
 
@@ -22,25 +24,36 @@ A web platform for padel players in Romania — find compatible partners, discov
 padel-platform/
 ├── apps/
 │   ├── api/          # Express backend (port 3001)
-│   │   ├── src/
-│   │   │   ├── config/       # env vars
-│   │   │   ├── lib/          # prisma client, logger
-│   │   │   ├── middleware/   # error handler
-│   │   │   └── routes/       # /api/health
-│   │   └── prisma/           # schema.prisma, seed.ts
+│   │   ├── prisma/   # schema.prisma · migrations · seed.ts
+│   │   └── src/
+│   │       ├── config/       # env loader
+│   │       ├── lib/          # prisma · logger · jwt · password · httpError · geo · DTO mappers
+│   │       ├── middleware/   # auth · validate · errorHandler
+│   │       ├── routes/       # health · auth · users · clubs
+│   │       └── services/     # authService · userService · clubService
 │   └── web/          # React frontend (port 5173)
 │       └── src/
-│           ├── components/ui/  # shadcn/ui components
-│           ├── pages/          # Landing, HealthPage
-│           ├── lib/            # axios client, utils
-│           └── styles/         # Tailwind globals
+│           ├── components/
+│           │   ├── ui/       # shadcn primitives (Button, Input, Tabs, Dialog…)
+│           │   ├── padel/    # PadelLevelBadge · PreferredSideIndicator · CourtTypeBadge
+│           │   ├── clubs/    # ClubCard · ClubsMap
+│           │   ├── profile/  # EditProfileForm · AvailabilityEditor · MatchingPreferencesForm
+│           │   ├── Layout.tsx
+│           │   └── RouteGuards.tsx
+│           ├── pages/        # Landing · HealthPage · auth/ · clubs/ · profile/
+│           ├── store/        # Zustand auth store
+│           ├── lib/          # axios client · utils
+│           └── styles/       # globals.css (Tailwind + CSS variables)
 ├── packages/
-│   └── shared/       # @padel/shared — types & schemas
-├── .eslintrc.cjs
-├── .prettierrc
+│   └── shared/       # @padel/shared
+│       └── src/
+│           ├── constants/    # enums (Gender, PreferredSide, PADEL_LEVELS, MAX_FAVORITE_CLUBS…)
+│           ├── schemas/      # auth · profile · club Zod schemas
+│           ├── types/        # PublicUserDto · SelfUserDto · ClubDto · AuthResponse…
+│           └── i18n/ro.ts    # Romanian copy strings
+├── docker-compose.yml # Postgres+pgvector (Phase 4 only)
 ├── tsconfig.base.json
-├── docker-compose.yml
-└── package.json      # npm workspaces root
+└── package.json       # npm workspaces root
 ```
 
 ---
@@ -56,7 +69,7 @@ padel-platform/
 
 ```bash
 git clone <repo-url>
-cd padel-platform
+cd Lucrare_Licenta_Sfetcu_Vlad_Andrei
 npm install
 ```
 
@@ -67,28 +80,83 @@ cp apps/api/.env.example apps/api/.env
 cp apps/web/.env.example apps/web/.env
 ```
 
-Edit `apps/api/.env` — the defaults work for local development.
+The defaults work for local development. The only file you really need is the API `.env` (the web app reads its `VITE_API_URL` directly from `.env.example` defaults if omitted).
 
-### 3. Run database migration
+### 3. Database migration + seed
 
-```bash
-npm run db:migrate -w apps/api
-```
-
-### 4. (Optional) Seed the database
+From the **API workspace** (`apps/api`):
 
 ```bash
-npm run db:seed -w apps/api
+npm run db:migrate -w apps/api    # apply the Phase 1 migration
+npm run db:seed     -w apps/api    # idempotent seed (admin + 5 players + 10 clubs)
 ```
 
-### 5. Start development servers
+### 4. Start dev servers
+
+From the **repo root**:
 
 ```bash
 npm run dev
 ```
 
-- API: http://localhost:3001
-- Web: http://localhost:5173
+- **API:** http://localhost:3001 (hot reload via `tsx watch`)
+- **Web:** http://localhost:5173 (Vite HMR)
+
+### Seeded accounts
+
+| Account               | Email                | Password     | Role   |
+| --------------------- | -------------------- | ------------ | ------ |
+| Admin                 | `admin@padel.local`  | `admin1234`  | ADMIN  |
+| Andrei Bratu          | `andrei@padel.local` | `player1234` | PLAYER |
+| Maria Constantin      | `maria@padel.local`  | `player1234` | PLAYER |
+| Radu Popa (Cluj)      | `radu@padel.local`   | `player1234` | PLAYER |
+| Ioana Dumitrescu (BV) | `ioana@padel.local`  | `player1234` | PLAYER |
+| Mihai Vasile (TM)     | `mihai@padel.local`  | `player1234` | PLAYER |
+
+The seed also creates 10 real-sounding Bucharest-area clubs with 2–4 courts each.
+
+---
+
+## API Reference (Phase 1)
+
+### Auth
+
+| Method | Path                       | Body                       | Auth | Description          |
+| ------ | -------------------------- | -------------------------- | ---- | -------------------- |
+| POST   | `/api/auth/register`       | RegisterSchema             | —    | Create account + JWT |
+| POST   | `/api/auth/login`          | LoginSchema                | —    | Get JWT              |
+| POST   | `/api/auth/logout`         | —                          | JWT  | Client-side discard  |
+| GET    | `/api/auth/me`             | —                          | JWT  | Self DTO             |
+| POST   | `/api/auth/me/password`    | ChangePasswordSchema       | JWT  | Change password      |
+| POST   | `/api/auth/password-reset` | RequestPasswordResetSchema | —    | Stub (TODO email)    |
+
+### Users
+
+| Method | Path                                   | Auth | Description                                |
+| ------ | -------------------------------------- | ---- | ------------------------------------------ |
+| PATCH  | `/api/users/me`                        | JWT  | Update profile (partial)                   |
+| GET    | `/api/users/me/availabilities`         | JWT  | List my weekly slots                       |
+| POST   | `/api/users/me/availabilities`         | JWT  | Add slot                                   |
+| PATCH  | `/api/users/me/availabilities/:id`     | JWT  | Update slot                                |
+| DELETE | `/api/users/me/availabilities/:id`     | JWT  | Remove slot                                |
+| GET    | `/api/users/me/favorite-clubs`         | JWT  | My favorites                               |
+| POST   | `/api/users/me/favorite-clubs/:clubId` | JWT  | Add favorite (max 3 → 400 with msg)        |
+| DELETE | `/api/users/me/favorite-clubs/:clubId` | JWT  | Remove favorite                            |
+| GET    | `/api/users/:identifier`               | opt  | Public profile by id/username + visibility |
+
+### Clubs
+
+| Method | Path                         | Auth        | Description                                                          |
+| ------ | ---------------------------- | ----------- | -------------------------------------------------------------------- |
+| GET    | `/api/clubs`                 | —           | List with `?city=&type=&indoor=&lat=&lng=&radiusKm=&page=&pageSize=` |
+| GET    | `/api/clubs/:slug`           | —           | Detail with courts                                                   |
+| POST   | `/api/clubs`                 | ADMIN/OWNER | Create (OWNER → unverified)                                          |
+| PATCH  | `/api/clubs/:id`             | owner/ADMIN | Update                                                               |
+| DELETE | `/api/clubs/:id`             | ADMIN       | Delete                                                               |
+| POST   | `/api/clubs/:id/verify`      | ADMIN       | Mark verified                                                        |
+| POST   | `/api/clubs/:id/courts`      | owner/ADMIN | Add court                                                            |
+| PATCH  | `/api/clubs/courts/:courtId` | owner/ADMIN | Update court                                                         |
+| DELETE | `/api/clubs/courts/:courtId` | owner/ADMIN | Remove court                                                         |
 
 ---
 
@@ -99,33 +167,34 @@ Run from the **repo root** with `npm run <script>`:
 | Script         | Description                                |
 | -------------- | ------------------------------------------ |
 | `dev`          | Start API + web with hot reload (parallel) |
-| `build`        | Build all packages/apps                    |
-| `lint`         | Lint all TypeScript/JavaScript files       |
+| `build`        | Build shared → api → web                   |
+| `lint`         | Lint all TS/JS                             |
 | `lint:fix`     | Lint and auto-fix                          |
-| `typecheck`    | TypeScript type-check all packages/apps    |
-| `format`       | Prettier write all files                   |
+| `typecheck`    | TypeScript check across all workspaces     |
+| `format`       | Prettier write everything                  |
 | `format:check` | Prettier check (CI)                        |
 
 Run from **`apps/api`** with `npm run <script> -w apps/api`:
 
-| Script       | Description           |
-| ------------ | --------------------- |
-| `db:migrate` | Run Prisma migrations |
-| `db:seed`    | Seed the database     |
-| `db:studio`  | Open Prisma Studio    |
+| Script       | Description                |
+| ------------ | -------------------------- |
+| `db:migrate` | Run Prisma migrations      |
+| `db:seed`    | Seed the database          |
+| `db:studio`  | Open Prisma Studio         |
+| `db:reset`   | **DESTRUCTIVE** — reset DB |
 
 ---
 
 ## Development Phases
 
-| Phase                          | Scope                                             |
-| ------------------------------ | ------------------------------------------------- |
-| **0 — Foundation** _(current)_ | Monorepo, tooling, health endpoint                |
-| 1 — Auth                       | JWT auth, user registration/login, Zod validation |
-| 2 — Clubs & Matching           | Club CRUD, AI partner-matching algorithm          |
-| 3 — Tournaments                | Americano/Mexicano formats, live scoring          |
-| 4 — Rating & AI                | Glicko-2 rating, RAG chatbot, Postgres migration  |
+| Phase | Scope                                                           |
+| ----- | --------------------------------------------------------------- |
+| 0     | Foundation — monorepo, tooling, health endpoint                 |
+| **1** | **Auth, profiles, clubs, geolocation, role gating** _(current)_ |
+| 2     | Matching algorithm, friendships, public chat                    |
+| 3     | Americano / Mexicano tournaments, live scoring                  |
+| 4     | Glicko-2 rating, RAG chatbot, Postgres + pgvector migration     |
 
 ---
 
-_This project is developed as part of a Bachelor's thesis at [University Name], academic year 2025–2026._
+_This project is developed as part of a Bachelor's thesis, academic year 2025–2026._
