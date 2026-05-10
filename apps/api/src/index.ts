@@ -8,6 +8,7 @@ import healthRouter from './routes/health.js';
 import authRouter from './routes/auth.js';
 import usersRouter from './routes/users.js';
 import clubsRouter from './routes/clubs.js';
+import matchingRouter from './routes/matching.js';
 
 const app = express();
 
@@ -19,6 +20,7 @@ app.use('/api/health', healthRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/clubs', clubsRouter);
+app.use('/api/matching', matchingRouter);
 
 app.use(errorHandler);
 
