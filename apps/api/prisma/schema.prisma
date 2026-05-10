@@ -1,7 +1,8 @@
-// Padel Platform — Phase 1 domain model
+// Padel Platform — Phase 2 domain model
 // Note: @db.Text annotations are omitted because they are PostgreSQL/MySQL-specific.
 // SQLite stores all text fields as TEXT regardless. When migrating to Postgres in
-// Phase 4, re-add @db.Text on: User.bio, User.coachCertifications, Club.description.
+// Phase 4, re-add @db.Text on: User.bio, User.coachCertifications, Club.description,
+// OpenMatchPost.notes, Match.scoreSets, Match.ratingChanges.
 
 generator client {
   provider = "prisma-client-js"
@@ -26,7 +27,7 @@ model User {
   dateOfBirth DateTime
   gender      Gender
   city        String
-  bio         String? // up to 200 chars enforced in Zod
+  bio         String?
 
   // Padel-specific
   padelLevel    Float         @default(3.0)
@@ -36,7 +37,7 @@ model User {
   playFrequency PlayFrequency
   goal          PlayerGoal
 
-  // Glicko-2 (computed in Phase 2)
+  // Glicko-2 (seeded from declared level on registration; updated after validated matches)
   glickoRating     Float @default(1500)
   glickoRD         Float @default(350)
   glickoVolatility Float @default(0.06)
@@ -44,7 +45,7 @@ model User {
   // Role
   role                UserRole @default(PLAYER)
   isCoach             Boolean  @default(false)
-  coachCertifications String? // JSON array as string for SQLite
+  coachCertifications String?
 
   // Matching prefs
   prefMaxLevelDiff     Float?
@@ -67,9 +68,15 @@ model User {
   updatedAt DateTime @updatedAt
 
   // Relations
-  availabilities Availability[]
-  favoriteClubs  UserFavoriteClub[]
-  ownedClubs     Club[]             @relation("ClubOwner")
+  availabilities       Availability[]
+  favoriteClubs        UserFavoriteClub[]
+  ownedClubs           Club[]                 @relation("ClubOwner")
+  openMatchesCreated   OpenMatchPost[]        @relation("OpenMatchCreator")
+  openMatchParticipations OpenMatchParticipant[]
+  matchesAsT1P1        Match[]                @relation("T1P1")
+  matchesAsT1P2        Match[]                @relation("T1P2")
+  matchesAsT2P1        Match[]                @relation("T2P1")
+  matchesAsT2P2        Match[]                @relation("T2P2")
 }
 
 enum Gender {
@@ -131,9 +138,9 @@ enum ProfileVisibility {
 model Availability {
   id        String @id @default(cuid())
   userId    String
-  dayOfWeek Int // 0=Sunday, 6=Saturday
-  startTime String // "HH:mm"
-  endTime   String // "HH:mm"
+  dayOfWeek Int
+  startTime String
+  endTime   String
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -153,9 +160,8 @@ model Club {
   email       String?
   website     String?
 
-  photos String @default("[]") // JSON array of URLs
+  photos String @default("[]")
 
-  // Facilities
   hasLockerRoom   Boolean @default(false)
   hasShowers      Boolean @default(false)
   hasCafe         Boolean @default(false)
@@ -164,7 +170,7 @@ model Club {
   hasSchool       Boolean @default(false)
   hasRacketRental Boolean @default(false)
 
-  businessHours String @default("{}") // JSON: { "monday": {"open":"08:00","close":"23:00"}, ... }
+  businessHours String @default("{}")
 
   isVerified Boolean @default(false)
   ownerId    String?
@@ -173,8 +179,10 @@ model Club {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  courts      Court[]
-  favoritedBy UserFavoriteClub[]
+  courts       Court[]
+  favoritedBy  UserFavoriteClub[]
+  openMatches  OpenMatchPost[]
+  matches      Match[]
 
   @@index([city])
   @@index([latitude, longitude])
@@ -216,4 +224,134 @@ model UserFavoriteClub {
   club Club @relation(fields: [clubId], references: [id], onDelete: Cascade)
 
   @@id([userId, clubId])
+}
+
+// ──────────────────────────────────────────────────────────────────────
+// Phase 2 — Open Matches and Match Recording
+// ──────────────────────────────────────────────────────────────────────
+
+model OpenMatchPost {
+  id              String   @id @default(cuid())
+  creatorId       String
+  clubId          String
+  scheduledAt     DateTime
+  durationMinutes Int      @default(90)
+
+  // Filtering criteria for who may join
+  levelMin       Float?
+  levelMax       Float?
+  sideNeeded     PreferredSide? // null = any
+  genderRequired GenderFilter  @default(ANY)
+  goalRequired   PlayerGoal?    // null = any
+
+  notes String?
+
+  status OpenMatchStatus @default(OPEN)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  creator      User                   @relation("OpenMatchCreator", fields: [creatorId], references: [id])
+  club         Club                   @relation(fields: [clubId], references: [id])
+  participants OpenMatchParticipant[]
+  resultMatch  Match?                 @relation("OpenMatchToMatch")
+
+  @@index([scheduledAt])
+  @@index([clubId])
+  @@index([status])
+}
+
+enum OpenMatchStatus {
+  OPEN
+  FULL
+  CANCELLED
+  COMPLETED
+}
+
+model OpenMatchParticipant {
+  id          String   @id @default(cuid())
+  openMatchId String
+  userId      String
+  joinedAt    DateTime @default(now())
+
+  openMatch OpenMatchPost @relation(fields: [openMatchId], references: [id], onDelete: Cascade)
+  user      User          @relation(fields: [userId], references: [id])
+
+  @@unique([openMatchId, userId])
+}
+
+model Match {
+  id   String    @id @default(cuid())
+  type MatchType
+
+  // Origin (one of)
+  openMatchId       String? @unique
+  // TODO Phase 3: add FK relation to TournamentMatch when the model exists.
+  tournamentMatchId String? @unique
+
+  // Players — positional, by team. 4 named relations required by Prisma.
+  team1Player1Id String
+  team1Player2Id String
+  team2Player1Id String
+  team2Player2Id String
+
+  // Context
+  clubId      String
+  courtId     String?
+  scheduledAt DateTime
+  startedAt   DateTime?
+  completedAt DateTime?
+
+  status MatchStatus @default(SCHEDULED)
+
+  // Score — JSON array: [{ team1Games, team2Games, team1TiebreakPoints?, team2TiebreakPoints? }, ...]
+  scoreSets   String?
+  winnerTeam  Int?   // 1 or 2
+
+  // Validation: all 4 must confirm within 48h after scoreSets entered
+  scoreEnteredAt DateTime?
+  scoreEnteredBy String?
+  confirmedT1P1  Boolean   @default(false)
+  confirmedT1P2  Boolean   @default(false)
+  confirmedT2P1  Boolean   @default(false)
+  confirmedT2P2  Boolean   @default(false)
+  isValidated    Boolean   @default(false)
+
+  // Rating impact (filled after validation)
+  ratingApplied Boolean @default(false)
+  ratingChanges String? // JSON: { [userId]: { before: { rating, rd, vol }, after: {...}, delta } }
+
+  // Dispute flag — Phase 3 will add admin-resolution tools
+  isDisputed       Boolean @default(false)
+  disputeReason    String?
+  disputeRaisedBy  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  openMatch    OpenMatchPost? @relation("OpenMatchToMatch", fields: [openMatchId], references: [id])
+  club         Club           @relation(fields: [clubId], references: [id])
+  team1Player1 User           @relation("T1P1", fields: [team1Player1Id], references: [id])
+  team1Player2 User           @relation("T1P2", fields: [team1Player2Id], references: [id])
+  team2Player1 User           @relation("T2P1", fields: [team2Player1Id], references: [id])
+  team2Player2 User           @relation("T2P2", fields: [team2Player2Id], references: [id])
+
+  @@index([scheduledAt])
+  @@index([clubId])
+  @@index([status])
+}
+
+enum MatchType {
+  OPEN_MATCH
+  TOURNAMENT
+  FRIENDLY
+}
+
+enum MatchStatus {
+  SCHEDULED
+  IN_PROGRESS
+  PENDING_CONFIRMATION
+  VALIDATED
+  EXPIRED
+  CANCELLED
 }
