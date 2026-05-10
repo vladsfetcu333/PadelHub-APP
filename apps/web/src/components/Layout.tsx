@@ -19,9 +19,12 @@ export default function Layout() {
   const navigate = useNavigate();
   const { user, status, logout } = useAuth();
 
-  const navLinks = [
+  const navLinks: Array<{ to: string; label: string; auth?: boolean }> = [
     { to: '/', label: ro.nav.home },
     { to: '/clubs', label: ro.nav.clubs },
+    { to: '/open-matches', label: ro.nav.openMatches },
+    { to: '/matching', label: ro.nav.matching, auth: true },
+    { to: '/matches', label: ro.nav.matches, auth: true },
   ];
 
   const initials = user
@@ -45,20 +48,22 @@ export default function Layout() {
           </Link>
 
           <nav className="hidden items-center gap-1 sm:flex">
-            {navLinks.map((link) => (
-              <Link
-                key={link.to}
-                to={link.to}
-                className={cn(
-                  'rounded-md px-3 py-2 text-sm font-medium transition-colors',
-                  pathname === link.to || pathname.startsWith(link.to + '/')
-                    ? 'bg-brand-50 text-brand-950'
-                    : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-                )}
-              >
-                {link.label}
-              </Link>
-            ))}
+            {navLinks
+              .filter((link) => !link.auth || status === 'authenticated')
+              .map((link) => (
+                <Link
+                  key={link.to}
+                  to={link.to}
+                  className={cn(
+                    'rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                    pathname === link.to || pathname.startsWith(link.to + '/')
+                      ? 'bg-brand-50 text-brand-950'
+                      : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                  )}
+                >
+                  {link.label}
+                </Link>
+              ))}
           </nav>
 
           <div className="flex items-center gap-2">
