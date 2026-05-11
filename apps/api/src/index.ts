@@ -12,6 +12,7 @@ import matchingRouter from './routes/matching.js';
 import openMatchesRouter from './routes/openMatches.js';
 import matchesRouter from './routes/matches.js';
 import tournamentsRouter from './routes/tournaments.js';
+import reportsRouter from './routes/reports.js';
 import { startMatchExpiryJob } from './services/matchService.js';
 
 const app = express();
@@ -28,6 +29,7 @@ app.use('/api/matching', matchingRouter);
 app.use('/api/open-matches', openMatchesRouter);
 app.use('/api/matches', matchesRouter);
 app.use('/api/tournaments', tournamentsRouter);
+app.use('/api/reports', reportsRouter);
 
 app.use(errorHandler);
 

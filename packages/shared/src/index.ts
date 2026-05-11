@@ -9,5 +9,6 @@ export * from './types/api';
 export * from './types/openMatch';
 export * from './types/match';
 export * from './types/tournament';
+export * from './types/reports';
 export { ro } from './i18n/ro';
 export type { RoCopy } from './i18n/ro';
