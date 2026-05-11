@@ -21,6 +21,9 @@ import TournamentDetailPage from '@/pages/tournaments/TournamentDetailPage';
 import NewTournamentPage from '@/pages/tournaments/NewTournamentPage';
 import ManageTournamentPage from '@/pages/tournaments/ManageTournamentPage';
 import TournamentDisplayPage from '@/pages/tournaments/TournamentDisplayPage';
+import PlayerReportPage from '@/pages/reports/PlayerReportPage';
+import ClubReportPage from '@/pages/reports/ClubReportPage';
+import AdminReportPage from '@/pages/reports/AdminReportPage';
 import { RequireAuth, RequireRole } from '@/components/RouteGuards';
 import { Toaster } from '@/components/ui/sonner';
 import { useAuth } from '@/store/auth';
@@ -120,6 +123,39 @@ export default function App() {
               <RequireAuth>
                 <ManageTournamentPage />
               </RequireAuth>
+            }
+          />
+
+          <Route
+            path="/reports/player"
+            element={
+              <RequireAuth>
+                <PlayerReportPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/reports/player/:userId"
+            element={
+              <RequireAuth>
+                <PlayerReportPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/reports/club/:clubId"
+            element={
+              <RequireAuth>
+                <ClubReportPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/admin/reports"
+            element={
+              <RequireRole roles={['ADMIN']}>
+                <AdminReportPage />
+              </RequireRole>
             }
           />
         </Route>
