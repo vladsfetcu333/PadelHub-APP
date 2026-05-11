@@ -51,6 +51,39 @@ export const MatchStatus = [
 ] as const;
 export type MatchStatus = (typeof MatchStatus)[number];
 
+export const TournamentFormat = ['AMERICANO', 'MEXICANO', 'ELIMINATION'] as const;
+export type TournamentFormat = (typeof TournamentFormat)[number];
+
+export const TournamentStatus = [
+  'DRAFT',
+  'REGISTRATION',
+  'IN_PROGRESS',
+  'COMPLETED',
+  'CANCELLED',
+] as const;
+export type TournamentStatus = (typeof TournamentStatus)[number];
+
+export const AmericanoPairingMode = ['ROTATION', 'BALANCED', 'TOP_TOGETHER', 'RANDOM'] as const;
+export type AmericanoPairingMode = (typeof AmericanoPairingMode)[number];
+
+export const NotificationType = [
+  'MATCH_RECOMMENDATION',
+  'MATCH_INVITATION',
+  'MATCH_SCHEDULED',
+  'MATCH_SCORE_PENDING',
+  'RATING_UPDATED',
+  'TOURNAMENT_INVITATION',
+  'TOURNAMENT_STARTING',
+  'TOURNAMENT_COMPLETED',
+  'CLUB_VERIFIED',
+  'WELCOME',
+  'GENERIC',
+] as const;
+export type NotificationType = (typeof NotificationType)[number];
+
+export const ChatRole = ['USER', 'ASSISTANT', 'SYSTEM'] as const;
+export type ChatRole = (typeof ChatRole)[number];
+
 // Step values allowed for the Playtomic-style padel level (1.0–7.0 in 0.5 increments)
 export const PADEL_LEVELS = [
   1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0,
