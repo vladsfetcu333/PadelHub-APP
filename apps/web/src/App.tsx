@@ -24,6 +24,7 @@ import TournamentDisplayPage from '@/pages/tournaments/TournamentDisplayPage';
 import PlayerReportPage from '@/pages/reports/PlayerReportPage';
 import ClubReportPage from '@/pages/reports/ClubReportPage';
 import AdminReportPage from '@/pages/reports/AdminReportPage';
+import NotificationsPage from '@/pages/NotificationsPage';
 import { RequireAuth, RequireRole } from '@/components/RouteGuards';
 import { Toaster } from '@/components/ui/sonner';
 import { useAuth } from '@/store/auth';
@@ -156,6 +157,15 @@ export default function App() {
               <RequireRole roles={['ADMIN']}>
                 <AdminReportPage />
               </RequireRole>
+            }
+          />
+
+          <Route
+            path="/notifications"
+            element={
+              <RequireAuth>
+                <NotificationsPage />
+              </RequireAuth>
             }
           />
         </Route>

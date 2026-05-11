@@ -10,5 +10,6 @@ export * from './types/openMatch';
 export * from './types/match';
 export * from './types/tournament';
 export * from './types/reports';
+export * from './types/notification';
 export { ro } from './i18n/ro';
 export type { RoCopy } from './i18n/ro';

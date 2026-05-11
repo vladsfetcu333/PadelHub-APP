@@ -5,6 +5,7 @@ import { signToken } from '../lib/jwt.js';
 import { toSelfUser } from '../lib/userDto.js';
 import { badRequest, conflict, notFound, unauthorized } from '../lib/httpError.js';
 import { initialRatingFromLevel } from '../lib/rating/glicko2.js';
+import { createNotification } from './notificationService.js';
 
 export async function register(input: RegisterInput): Promise<AuthResponse> {
   const existingEmail = await prisma.user.findUnique({ where: { email: input.email } });
@@ -40,6 +41,16 @@ export async function register(input: RegisterInput): Promise<AuthResponse> {
   });
 
   const token = signToken({ userId: user.id, role: user.role });
+
+  // Welcome notification — fire-and-forget, never blocks registration
+  void createNotification({
+    userId: user.id,
+    type: 'WELCOME',
+    title: 'Bun venit pe Padel Platform!',
+    body: 'Completează-ți disponibilitatea și încearcă să găsești primul tău partener.',
+    actionUrl: '/profile',
+  });
+
   return { token, user: toSelfUser(user) };
 }
 

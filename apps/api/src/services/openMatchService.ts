@@ -25,6 +25,7 @@ import { prisma } from '../lib/prisma.js';
 import { toOpenMatchDto } from '../lib/openMatchDto.js';
 import { badRequest, conflict, forbidden, notFound } from '../lib/httpError.js';
 import { clearMatchingCache } from './matchingService.js';
+import { createNotification } from './notificationService.js';
 
 const FULL_INCLUDE = {
   creator: true,
@@ -246,6 +247,20 @@ export async function joinOpenMatch(matchId: string, userId: string): Promise<Op
   });
 
   clearMatchingCache(); // results may now include fewer free candidates
+
+  // Notify all 4 participants when the match becomes full
+  if (result?.status === 'FULL') {
+    for (const p of result.participants) {
+      void createNotification({
+        userId: p.userId,
+        type: 'MATCH_SCHEDULED',
+        title: 'Match-ul tău este complet!',
+        body: `Toți 4 jucătorii s-au înscris pentru match-ul de la ${result.club.name}.`,
+        actionUrl: `/open-matches/${result.id}`,
+        metadata: { openMatchId: result.id, matchId: result.resultMatch?.id ?? null },
+      });
+    }
+  }
   return toOpenMatchDto(result!);
 }
 

@@ -12,6 +12,7 @@ import {
   DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { NotificationBell } from '@/components/NotificationBell';
 import { Button } from '@/components/ui/button';
 
 export default function Layout() {
@@ -67,6 +68,7 @@ export default function Layout() {
           </nav>
 
           <div className="flex items-center gap-2">
+            {status === 'authenticated' && user && <NotificationBell />}
             {status === 'authenticated' && user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

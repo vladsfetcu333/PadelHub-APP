@@ -31,6 +31,7 @@ import { toMatchDto } from '../lib/matchDto.js';
 import { logger } from '../lib/logger.js';
 import { conflict, forbidden, notFound } from '../lib/httpError.js';
 import { updateDoublesMatch, type Rating } from '../lib/rating/glicko2.js';
+import { createNotification } from './notificationService.js';
 
 const FULL_INCLUDE = {
   team1Player1: true,
@@ -142,6 +143,24 @@ export async function enterScore(
     },
     include: FULL_INCLUDE,
   });
+
+  // Notify the other 3 participants to confirm
+  const others = [
+    updated.team1Player1Id,
+    updated.team1Player2Id,
+    updated.team2Player1Id,
+    updated.team2Player2Id,
+  ].filter((id) => id !== userId);
+  for (const otherId of others) {
+    void createNotification({
+      userId: otherId,
+      type: 'MATCH_SCORE_PENDING',
+      title: 'Scor introdus — așteaptă confirmarea ta',
+      body: 'Un partener/adversar a introdus scorul. Confirmă pentru a actualiza rating-urile.',
+      actionUrl: `/matches/${updated.id}`,
+      metadata: { matchId: updated.id },
+    });
+  }
   return toMatchDto(updated);
 }
 
@@ -290,6 +309,23 @@ async function applyMatchRating(tx: Tx, matchId: string): Promise<void> {
       where: { id: match.openMatchId },
       data: { status: 'COMPLETED' },
     });
+  }
+
+  // Notify all 4 players of their rating change (only if delta > 10 to
+  // avoid noise). Fire-and-forget — runs after the transaction settles
+  // because notifications don't need to be transactional with the rating.
+  for (const id of Object.keys(changes)) {
+    const c = changes[id]!;
+    if (Math.abs(c.delta) >= 10) {
+      void createNotification({
+        userId: id,
+        type: 'RATING_UPDATED',
+        title: 'Rating actualizat',
+        body: `Rating-ul tău s-a modificat cu ${c.delta > 0 ? '+' : ''}${c.delta.toFixed(0)} (nou: ${c.after.rating.toFixed(0)}).`,
+        actionUrl: `/profile?tab=rating`,
+        metadata: { matchId, delta: c.delta },
+      });
+    }
   }
 }
 
