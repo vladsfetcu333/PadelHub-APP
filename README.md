@@ -117,7 +117,7 @@ The seed also creates 10 real-sounding Bucharest-area clubs with 2–4 courts ea
 
 ---
 
-## API Reference (Phase 1)
+## API Reference (Phases 1 + 2)
 
 ### Auth
 
@@ -158,6 +158,39 @@ The seed also creates 10 real-sounding Bucharest-area clubs with 2–4 courts ea
 | PATCH  | `/api/clubs/courts/:courtId` | owner/ADMIN | Update court                                                         |
 | DELETE | `/api/clubs/courts/:courtId` | owner/ADMIN | Remove court                                                         |
 
+### Matching (Phase 2)
+
+| Method | Path                                           | Auth | Description                                                    |
+| ------ | ---------------------------------------------- | ---- | -------------------------------------------------------------- |
+| GET    | `/api/matching/partners`                       | JWT  | Top compatible partners with score + breakdown (MCDA weighted) |
+| GET    | `/api/matching/full-match`                     | JWT  | Suggested 2v2 formations from your top partners pool           |
+| GET    | `/api/matching/open-match/:id/recommendations` | JWT  | Best fillers for an open match slot                            |
+
+Cached for 60 s per `(userId, queryString)`. Invalidated on any open-match write.
+
+### Open Matches (Phase 2)
+
+| Method | Path                          | Auth | Description                                                |
+| ------ | ----------------------------- | ---- | ---------------------------------------------------------- |
+| GET    | `/api/open-matches`           | —    | List (filters: city, dateFrom/To, levelMin/Max, status)    |
+| GET    | `/api/open-matches/:id`       | —    | Detail with participants                                   |
+| POST   | `/api/open-matches`           | JWT  | Create — creator auto-added as participant #1              |
+| POST   | `/api/open-matches/:id/join`  | JWT  | Join (eligibility-checked); 4th join → status FULL + Match |
+| DELETE | `/api/open-matches/:id/leave` | JWT  | Leave (creator must cancel instead; blocked when FULL)     |
+| DELETE | `/api/open-matches/:id`       | JWT  | Creator cancels (only while OPEN)                          |
+
+### Matches (Phase 2)
+
+| Method | Path                       | Auth | Description                                                          |
+| ------ | -------------------------- | ---- | -------------------------------------------------------------------- |
+| GET    | `/api/matches/me`          | JWT  | My matches, filterable by `?status=`                                 |
+| GET    | `/api/matches/:id`         | JWT  | Match detail                                                         |
+| POST   | `/api/matches/:id/score`   | JWT  | Enter score → PENDING_CONFIRMATION; auto-confirms entrant            |
+| POST   | `/api/matches/:id/confirm` | JWT  | Confirm score; on 4th confirm → VALIDATED + Glicko-2 ratings applied |
+| POST   | `/api/matches/:id/dispute` | JWT  | Flag dispute (admin resolution tools deferred to Phase 3)            |
+
+Background job: rows in `PENDING_CONFIRMATION` older than 48 h → `EXPIRED` (no rating change). Cron runs hourly via `setInterval` in `startMatchExpiryJob`.
+
 ---
 
 ## Available Scripts
@@ -176,24 +209,28 @@ Run from the **repo root** with `npm run <script>`:
 
 Run from **`apps/api`** with `npm run <script> -w apps/api`:
 
-| Script       | Description                |
-| ------------ | -------------------------- |
-| `db:migrate` | Run Prisma migrations      |
-| `db:seed`    | Seed the database          |
-| `db:studio`  | Open Prisma Studio         |
-| `db:reset`   | **DESTRUCTIVE** — reset DB |
+| Script       | Description                                                         |
+| ------------ | ------------------------------------------------------------------- |
+| `db:migrate` | Run Prisma migrations                                               |
+| `db:seed`    | Seed the database                                                   |
+| `db:studio`  | Open Prisma Studio                                                  |
+| `db:reset`   | **DESTRUCTIVE** — reset DB                                          |
+| `test`       | Run Vitest unit tests (Glicko-2 + compatibility scoring — 49 tests) |
+| `test:watch` | Vitest watch mode                                                   |
 
 ---
 
 ## Development Phases
 
-| Phase | Scope                                                           |
-| ----- | --------------------------------------------------------------- |
-| 0     | Foundation — monorepo, tooling, health endpoint                 |
-| **1** | **Auth, profiles, clubs, geolocation, role gating** _(current)_ |
-| 2     | Matching algorithm, friendships, public chat                    |
-| 3     | Americano / Mexicano tournaments, live scoring                  |
-| 4     | Glicko-2 rating, RAG chatbot, Postgres + pgvector migration     |
+| Phase | Scope                                                                                 |
+| ----- | ------------------------------------------------------------------------------------- |
+| 0     | Foundation — monorepo, tooling, health endpoint                                       |
+| 1     | Auth, profiles, clubs, geolocation, role gating                                       |
+| **2** | **Compatibility scoring (MCDA), open matches, match recording, Glicko-2** _(current)_ |
+| 3     | Americano / Mexicano tournaments, live scoring, admin dispute tools                   |
+| 4     | RAG chatbot, Postgres + pgvector migration                                            |
+
+See `PHASE0_REPORT.md`, `PHASE1_REPORT.md`, `PHASE2_REPORT.md` for per-phase implementation notes.
 
 ---
 
