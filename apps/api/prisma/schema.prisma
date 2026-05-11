@@ -77,6 +77,10 @@ model User {
   matchesAsT1P2        Match[]                @relation("T1P2")
   matchesAsT2P1        Match[]                @relation("T2P1")
   matchesAsT2P2        Match[]                @relation("T2P2")
+  tournamentsOrganized Tournament[]           @relation("TournamentOrganizer")
+  tournamentEntries    TournamentPlayer[]     @relation("TournamentPlayer")
+  notifications        Notification[]
+  chatSessions         ChatSession[]
 }
 
 enum Gender {
@@ -183,6 +187,7 @@ model Club {
   favoritedBy  UserFavoriteClub[]
   openMatches  OpenMatchPost[]
   matches      Match[]
+  tournaments  Tournament[]
 
   @@index([city])
   @@index([latitude, longitude])
@@ -354,4 +359,255 @@ enum MatchStatus {
   VALIDATED
   EXPIRED
   CANCELLED
+}
+
+// ──────────────────────────────────────────────────────────────────────
+// Phase 3 — Tournaments
+// ──────────────────────────────────────────────────────────────────────
+
+model Tournament {
+  id          String           @id @default(cuid())
+  name        String
+  description String?
+  format      TournamentFormat
+
+  clubId      String
+  organizerId String
+
+  startDate DateTime
+  endDate   DateTime?
+
+  // Configuration
+  maxPlayers           Int
+  numberOfRounds       Int?
+  pointsPerGame        Int     @default(1)
+  matchDurationMinutes Int     @default(20)
+  numberOfCourts       Int     @default(1)
+
+  // Americano sub-mode: how pairs are generated each round.
+  // ROTATION = social-golfer-style fixed schedule (every pair as evenly as possible)
+  // BALANCED = top with bottom (high with low) — original Padel Hub default
+  // TOP_TOGETHER = same-rank pairs (1+2, 3+4, ...)
+  // RANDOM = random with previous-pair avoidance
+  pairingMode AmericanoPairingMode @default(ROTATION)
+
+  // Win/loss/draw points (Americano scoring)
+  winPoints  Int @default(3)
+  drawPoints Int @default(1)
+  lossPoints Int @default(0)
+
+  // Rules
+  isPublic         Boolean @default(true)
+  requiresApproval Boolean @default(false)
+  minLevel         Float?
+  maxLevel         Float?
+  entryFee         Float?
+  allowGuests      Boolean @default(true)
+
+  status       TournamentStatus @default(DRAFT)
+  currentRound Int              @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  club      Club               @relation(fields: [clubId], references: [id])
+  organizer User               @relation("TournamentOrganizer", fields: [organizerId], references: [id])
+  players   TournamentPlayer[]
+  rounds    TournamentRound[]
+
+  @@index([startDate])
+  @@index([status])
+  @@index([clubId])
+}
+
+enum TournamentFormat {
+  AMERICANO
+  MEXICANO
+  ELIMINATION
+}
+
+enum TournamentStatus {
+  DRAFT
+  REGISTRATION
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum AmericanoPairingMode {
+  ROTATION
+  BALANCED
+  TOP_TOGETHER
+  RANDOM
+}
+
+model TournamentPlayer {
+  id           String @id @default(cuid())
+  tournamentId String
+
+  // Either userId (registered) OR guest fields
+  userId     String?
+  guestName  String?
+  guestLevel Float?
+
+  seed           Int?
+  totalGamesWon  Int  @default(0)
+  totalGamesLost Int  @default(0)
+  totalPoints    Int  @default(0)
+  finalRank      Int?
+
+  joinedAt DateTime @default(now())
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  user       User?      @relation("TournamentPlayer", fields: [userId], references: [id])
+
+  matchesT1P1 TournamentMatch[] @relation("TM_T1P1")
+  matchesT1P2 TournamentMatch[] @relation("TM_T1P2")
+  matchesT2P1 TournamentMatch[] @relation("TM_T2P1")
+  matchesT2P2 TournamentMatch[] @relation("TM_T2P2")
+
+  @@unique([tournamentId, userId])
+  @@index([tournamentId])
+}
+
+model TournamentRound {
+  id           String    @id @default(cuid())
+  tournamentId String
+  roundNumber  Int
+  startedAt    DateTime?
+  completedAt  DateTime?
+
+  tournament Tournament        @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  matches    TournamentMatch[]
+
+  @@unique([tournamentId, roundNumber])
+}
+
+model TournamentMatch {
+  id          String @id @default(cuid())
+  roundId     String
+  courtNumber Int?
+
+  team1Player1Id String
+  team1Player2Id String
+  team2Player1Id String
+  team2Player2Id String
+
+  team1Score Int?
+  team2Score Int?
+
+  status      MatchStatus @default(SCHEDULED)
+  startedAt   DateTime?
+  completedAt DateTime?
+
+  // Link to general Match record IF all 4 are registered users
+  generalMatchId String? @unique
+
+  round        TournamentRound  @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  team1Player1 TournamentPlayer @relation("TM_T1P1", fields: [team1Player1Id], references: [id])
+  team1Player2 TournamentPlayer @relation("TM_T1P2", fields: [team1Player2Id], references: [id])
+  team2Player1 TournamentPlayer @relation("TM_T2P1", fields: [team2Player1Id], references: [id])
+  team2Player2 TournamentPlayer @relation("TM_T2P2", fields: [team2Player2Id], references: [id])
+
+  @@index([roundId])
+}
+
+// ──────────────────────────────────────────────────────────────────────
+// Phase 3 — Notifications
+// ──────────────────────────────────────────────────────────────────────
+
+model Notification {
+  id       String           @id @default(cuid())
+  userId   String
+  type     NotificationType
+  title    String
+  body     String
+
+  actionUrl String?
+
+  // JSON-encoded payload for context (e.g. matchId, openMatchId)
+  metadata String?
+
+  isRead Boolean   @default(false)
+  readAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead, createdAt])
+}
+
+enum NotificationType {
+  MATCH_RECOMMENDATION
+  MATCH_INVITATION
+  MATCH_SCHEDULED
+  MATCH_SCORE_PENDING
+  RATING_UPDATED
+  TOURNAMENT_INVITATION
+  TOURNAMENT_STARTING
+  TOURNAMENT_COMPLETED
+  CLUB_VERIFIED
+  WELCOME
+  GENERIC
+}
+
+// ──────────────────────────────────────────────────────────────────────
+// Phase 3 — Chatbot / RAG
+// ──────────────────────────────────────────────────────────────────────
+
+model KnowledgeChunk {
+  id       String @id @default(cuid())
+  source   String
+  category String
+
+  content String
+
+  // JSON-serialised number array. SQLite has no vector type; Phase 4
+  // (Postgres + pgvector) will replace this with a real vector column.
+  embedding String
+
+  // Content hash for idempotent re-ingestion
+  contentHash String @unique
+
+  createdAt DateTime @default(now())
+
+  @@index([source])
+  @@index([category])
+}
+
+model ChatSession {
+  id     String  @id @default(cuid())
+  userId String
+  title  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages ChatMessage[]
+
+  @@index([userId])
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  sessionId String
+  role      ChatRole
+  content   String
+
+  // JSON array of KnowledgeChunk ids used as context for assistant messages
+  contextChunkIds String?
+
+  createdAt DateTime @default(now())
+
+  session ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+}
+
+enum ChatRole {
+  USER
+  ASSISTANT
+  SYSTEM
 }
