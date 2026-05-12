@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { NotificationBell } from '@/components/NotificationBell';
+import { ChatWidget } from '@/components/chat/ChatWidget';
 import { Button } from '@/components/ui/button';
 
 export default function Layout() {
@@ -123,6 +124,9 @@ export default function Layout() {
       <footer className="border-t border-border py-6 text-center text-sm text-muted-foreground">
         <p>{ro.app.footer}</p>
       </footer>
+
+      {/* Floating chatbot — renders nothing for guests */}
+      <ChatWidget />
     </div>
   );
 }
