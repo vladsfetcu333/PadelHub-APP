@@ -7,6 +7,12 @@
  * does NOT duplicate rows; updated content gets new chunks while the
  * old hashes that no longer appear are pruned at the end.
  *
+ * Postgres + pgvector note: the `embedding` column is `vector(384)`,
+ * which Prisma models as `Unsupported<>`. We INSERT via $executeRaw so
+ * we can pass a literal `[0.1,0.2,...]::vector` value. Reads of the
+ * embedding column are never needed by application code (similarity is
+ * computed in-DB via the `<=>` operator).
+ *
  * Usage:  npm run ingest:knowledge -w apps/api
  */
 
@@ -14,8 +20,8 @@ import 'dotenv/config';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createHash } from 'node:crypto';
-import { PrismaClient } from '@prisma/client';
+import { createHash, randomUUID } from 'node:crypto';
+import { PrismaClient, Prisma } from '@prisma/client';
 import { chunkMarkdown } from '../lib/rag/chunker.js';
 import { getEmbedder } from '../lib/rag/embedder.js';
 
@@ -36,6 +42,10 @@ const CATEGORY_BY_FILE: Record<string, string> = {
 
 function hashContent(s: string): string {
   return createHash('sha256').update(s).digest('hex');
+}
+
+function toVectorLiteral(vec: number[]): string {
+  return `[${vec.join(',')}]`;
 }
 
 async function main() {
@@ -65,23 +75,21 @@ async function main() {
       const contentHash = hashContent(chunk.content);
       seenHashes.add(contentHash);
 
+      // Cheap typed read — uses the contentHash unique index.
       const existing = await prisma.knowledgeChunk.findUnique({
         where: { contentHash },
+        select: { id: true },
       });
       if (existing) {
         skipped++;
         continue;
       }
       const vector = await embedder.embed(chunk.content);
-      await prisma.knowledgeChunk.create({
-        data: {
-          source: file,
-          category,
-          content: chunk.content,
-          embedding: JSON.stringify(vector),
-          contentHash,
-        },
-      });
+      const id = `clk_${randomUUID().replace(/-/g, '').slice(0, 24)}`;
+      await prisma.$executeRaw(Prisma.sql`
+        INSERT INTO "KnowledgeChunk" ("id", "source", "category", "content", "embedding", "contentHash", "createdAt")
+        VALUES (${id}, ${file}, ${category}, ${chunk.content}, ${toVectorLiteral(vector)}::vector, ${contentHash}, NOW())
+      `);
       inserted++;
     }
   }

@@ -1,5 +1,14 @@
-# Docker Compose — Postgres + pgvector for Phase 4 (production migration from SQLite).
-# Not used in Phase 0 development. Run with: docker compose up -d
+# Docker Compose — local Postgres 16 + pgvector for development.
+#
+# Usage:
+#   docker compose up -d postgres     # start in background
+#   docker compose logs -f postgres    # tail logs
+#   docker compose down                # stop (preserve data)
+#   docker compose down -v             # stop + wipe data volume
+#
+# After it's up, point apps/api/.env at it:
+#   DATABASE_URL="postgresql://postgres:postgres@localhost:5432/padel_dev"
+# then run `npm run db:migrate -w apps/api` to apply the init migration.
 version: '3.9'
 
 services:
@@ -15,6 +24,11 @@ services:
       - '5432:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d padel_dev']
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
 volumes:
   postgres_data:

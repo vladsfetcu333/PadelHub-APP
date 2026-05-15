@@ -1,16 +1,19 @@
-// Padel Platform — Phase 2 domain model
-// Note: @db.Text annotations are omitted because they are PostgreSQL/MySQL-specific.
-// SQLite stores all text fields as TEXT regardless. When migrating to Postgres in
-// Phase 4, re-add @db.Text on: User.bio, User.coachCertifications, Club.description,
-// OpenMatchPost.notes, Match.scoreSets, Match.ratingChanges.
+// Padel Platform — Phase 4 domain model (PostgreSQL + pgvector).
+// Migrated from SQLite in Phase 4; the embedding column on KnowledgeChunk
+// is now a native pgvector `vector(384)` for fast cosine search via the
+// `<=>` operator. JSON-as-string fields (photos, businessHours, scoreSets,
+// ratingChanges, metadata, contextChunkIds) are kept as String for now —
+// the service layer already round-trips them through JSON.{parse,stringify}.
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [vector]
 }
 
 model User {
@@ -563,9 +566,11 @@ model KnowledgeChunk {
 
   content String
 
-  // JSON-serialised number array. SQLite has no vector type; Phase 4
-  // (Postgres + pgvector) will replace this with a real vector column.
-  embedding String
+  // pgvector column — 384 dimensions to match the Xenova all-MiniLM-L6-v2
+  // embedder. Bump the dim (and re-ingest) if you swap embedder. Prisma
+  // doesn't model `vector` natively yet, so we use Unsupported<> and
+  // access it via raw SQL in `lib/rag/retriever.ts` and the ingestion script.
+  embedding Unsupported("vector(384)")
 
   // Content hash for idempotent re-ingestion
   contentHash String @unique
@@ -574,6 +579,9 @@ model KnowledgeChunk {
 
   @@index([source])
   @@index([category])
+  // Approximate-nearest-neighbour index (HNSW) for fast cosine search.
+  // Defined explicitly in the migration SQL (see init migration), since
+  // Prisma's @@index can't yet emit `USING hnsw (embedding vector_cosine_ops)`.
 }
 
 model ChatSession {

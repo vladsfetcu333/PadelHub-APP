@@ -2,16 +2,31 @@
  * RAG retriever — finds the top-K most-similar knowledge chunks for a
  * given user query.
  *
- * Algorithm: embed the query → load all chunks → compute cosine
- * similarity vs each → sort desc → return top K.
+ * Implementation (Phase 4): pgvector cosine search via the `<=>` operator
+ * on the `vector(384)` column, with the HNSW index installed by the init
+ * migration. The query is a single round-trip:
  *
- * At thesis scale (~50-200 chunks total across 5 markdown files) this
- * in-memory scan completes in <20 ms. Phase 4 (Postgres + pgvector)
- * replaces the in-memory loop with a `<->` SQL operator.
+ *   SELECT id, source, category, content,
+ *          1 - (embedding <=> $1::vector) AS similarity
+ *   FROM "KnowledgeChunk"
+ *   ORDER BY embedding <=> $1::vector
+ *   LIMIT $2;
+ *
+ * `<=>` is the cosine-distance operator (0 = identical, 1 = orthogonal,
+ * 2 = opposite). We expose `1 - distance` so the API field stays
+ * compatible with the in-memory implementation from Phase 3 (higher =
+ * better). Since embeddings are L2-normalised at ingest time, cosine
+ * distance is equivalent to inner-product distance — `<=>` is the
+ * canonical pgvector operator for that case.
+ *
+ * Performance: HNSW index brings top-5 lookup down to sub-millisecond
+ * even at hundreds of thousands of rows; the in-memory JS loop in Phase 3
+ * was O(N) per query. The bottleneck is now the embedding step
+ * (~50 ms on Xenova MiniLM, single-threaded CPU).
  */
 
 import { prisma } from '../prisma.js';
-import { cosineSimilarity, getEmbedder } from './embedder.js';
+import { getEmbedder } from './embedder.js';
 
 export interface RetrievedChunk {
   id: string;
@@ -21,33 +36,35 @@ export interface RetrievedChunk {
   similarity: number;
 }
 
+/** Format a JS number array as a pgvector literal: `[0.1,0.2,...]`. */
+function toVectorLiteral(vec: number[]): string {
+  return `[${vec.join(',')}]`;
+}
+
 export async function retrieveRelevantChunks(query: string, topK = 5): Promise<RetrievedChunk[]> {
   const embedder = getEmbedder();
   const queryVector = await embedder.embed(query);
+  const vectorLiteral = toVectorLiteral(queryVector);
 
-  const chunks = await prisma.knowledgeChunk.findMany();
-  if (chunks.length === 0) return [];
+  const rows = await prisma.$queryRawUnsafe<
+    Array<{ id: string; source: string; category: string; content: string; similarity: number }>
+  >(
+    `SELECT id, source, category, content,
+            (1 - (embedding <=> $1::vector))::float8 AS similarity
+     FROM "KnowledgeChunk"
+     ORDER BY embedding <=> $1::vector
+     LIMIT $2`,
+    vectorLiteral,
+    topK,
+  );
 
-  const scored: RetrievedChunk[] = [];
-  for (const c of chunks) {
-    let chunkVector: number[];
-    try {
-      chunkVector = JSON.parse(c.embedding) as number[];
-    } catch {
-      continue; // skip malformed
-    }
-    if (chunkVector.length !== queryVector.length) continue; // dim mismatch (embedder swap)
-    scored.push({
-      id: c.id,
-      source: c.source,
-      category: c.category,
-      content: c.content,
-      similarity: cosineSimilarity(queryVector, chunkVector),
-    });
-  }
-
-  scored.sort((a, b) => b.similarity - a.similarity);
-  return scored.slice(0, topK);
+  return rows.map((r) => ({
+    id: r.id,
+    source: r.source,
+    category: r.category,
+    content: r.content,
+    similarity: Number(r.similarity),
+  }));
 }
 
 /** Map filename → human-readable Romanian source label for citations. */
