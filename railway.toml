@@ -1,0 +1,40 @@
+# Railway service config — API (Express + Prisma + pgvector).
+#
+# Service expectations:
+#   - Repo root directory pointed at this monorepo root (default).
+#   - A PostgreSQL plugin attached with DATABASE_URL auto-wired.
+#   - The `vector` extension enabled on that database (the init migration
+#     issues `CREATE EXTENSION IF NOT EXISTS "vector"`; Railway's stock
+#     pgvector image — `ghcr.io/tensorchord/pgvecto-rs` template or the
+#     newer Railway "Postgres + pgvector" plugin — already ships with it).
+#
+# Required env vars (set in Railway UI ▸ Service ▸ Variables):
+#   DATABASE_URL          (auto-provided by attached Postgres plugin)
+#   JWT_SECRET            (generate: openssl rand -hex 32)
+#   ANTHROPIC_API_KEY     (Claude Haiku 4.5 chatbot — optional)
+#   CORS_ORIGIN           (e.g. https://padel.vercel.app — no trailing /)
+#   NODE_ENV=production
+#
+# Railway sets PORT itself; Express reads it via env.port.
+
+[build]
+  builder = "NIXPACKS"
+  # Install everything (incl. devDeps so prisma + tsc are available),
+  # generate the Prisma client, then build shared + api workspaces.
+  buildCommand = """
+npm ci --include=dev \
+  && npx prisma generate --schema apps/api/prisma/schema.prisma \
+  && npm run build -w packages/shared \
+  && npm run build -w apps/api
+"""
+
+[deploy]
+  # Apply pending migrations before each release. Safe on a fresh DB
+  # (creates everything from the init migration) and idempotent on
+  # subsequent deploys.
+  preDeployCommand = "npx prisma migrate deploy --schema apps/api/prisma/schema.prisma"
+  startCommand = "npm run start -w apps/api"
+  healthcheckPath = "/api/health"
+  healthcheckTimeout = 60
+  restartPolicyType = "ON_FAILURE"
+  restartPolicyMaxRetries = 3
