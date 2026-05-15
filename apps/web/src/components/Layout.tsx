@@ -1,6 +1,6 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { ro } from '@padel/shared';
-import { LogOut, User as UserIcon, Heart } from 'lucide-react';
+import { LogOut, User as UserIcon, Heart, Menu } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/store/auth';
 import {
@@ -29,6 +29,10 @@ export default function Layout() {
     { to: '/matches', label: ro.nav.matches, auth: true },
   ];
 
+  const visibleLinks = navLinks.filter((link) => !link.auth || status === 'authenticated');
+
+  const isActive = (to: string) => pathname === to || pathname.startsWith(to + '/');
+
   const initials = user
     ? `${user.firstName[0] ?? ''}${user.lastName[0] ?? ''}`.toUpperCase() || 'U'
     : '';
@@ -41,39 +45,63 @@ export default function Layout() {
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <header className="sticky top-0 z-10 border-b border-border bg-white">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
-          <Link to="/" className="flex items-center gap-2 text-lg font-semibold text-brand-950">
-            <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-brand-950 text-sm font-bold text-white">
+        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-2 px-3 sm:px-4">
+          {/* Mobile hamburger — visible below sm */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="rounded-md p-2 hover:bg-muted sm:hidden" aria-label="Menu">
+                <Menu className="h-5 w-5" aria-hidden="true" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-56">
+              {visibleLinks.map((link) => (
+                <DropdownMenuItem
+                  key={link.to}
+                  onClick={() => navigate(link.to)}
+                  className={cn(isActive(link.to) && 'bg-brand-50 font-medium text-brand-950')}
+                >
+                  {link.label}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <Link
+            to="/"
+            className="flex min-w-0 items-center gap-2 text-lg font-semibold text-brand-950"
+          >
+            <span className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-brand-950 text-sm font-bold text-white">
               P
             </span>
-            {ro.app.name}
+            <span className="hidden truncate sm:inline">{ro.app.name}</span>
           </Link>
 
           <nav className="hidden items-center gap-1 sm:flex">
-            {navLinks
-              .filter((link) => !link.auth || status === 'authenticated')
-              .map((link) => (
-                <Link
-                  key={link.to}
-                  to={link.to}
-                  className={cn(
-                    'rounded-md px-3 py-2 text-sm font-medium transition-colors',
-                    pathname === link.to || pathname.startsWith(link.to + '/')
-                      ? 'bg-brand-50 text-brand-950'
-                      : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-                  )}
-                >
-                  {link.label}
-                </Link>
-              ))}
+            {visibleLinks.map((link) => (
+              <Link
+                key={link.to}
+                to={link.to}
+                className={cn(
+                  'rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                  isActive(link.to)
+                    ? 'bg-brand-50 text-brand-950'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                )}
+              >
+                {link.label}
+              </Link>
+            ))}
           </nav>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
             {status === 'authenticated' && user && <NotificationBell />}
             {status === 'authenticated' && user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="flex items-center gap-2 rounded-full p-1 hover:bg-muted">
+                  <button
+                    className="flex items-center gap-2 rounded-full p-1 hover:bg-muted"
+                    aria-label={ro.nav.profile}
+                  >
                     <Avatar className="h-9 w-9">
                       <AvatarFallback className="bg-brand-950 text-sm font-semibold text-white">
                         {initials}
@@ -105,7 +133,7 @@ export default function Layout() {
               </DropdownMenu>
             ) : (
               <>
-                <Button asChild variant="ghost" size="sm">
+                <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
                   <Link to="/login">{ro.nav.login}</Link>
                 </Button>
                 <Button asChild size="sm">

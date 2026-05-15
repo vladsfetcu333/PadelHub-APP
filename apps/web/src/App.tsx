@@ -25,6 +25,7 @@ import PlayerReportPage from '@/pages/reports/PlayerReportPage';
 import ClubReportPage from '@/pages/reports/ClubReportPage';
 import AdminReportPage from '@/pages/reports/AdminReportPage';
 import NotificationsPage from '@/pages/NotificationsPage';
+import NotFoundPage from '@/pages/NotFoundPage';
 import { RequireAuth, RequireRole } from '@/components/RouteGuards';
 import { Toaster } from '@/components/ui/sonner';
 import { useAuth } from '@/store/auth';
@@ -168,6 +169,9 @@ export default function App() {
               </RequireAuth>
             }
           />
+
+          {/* Catch-all 404 — must be the last route inside Layout. */}
+          <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

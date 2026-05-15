@@ -330,6 +330,20 @@ export const ro = {
     confirm: 'Confirmă',
     yes: 'Da',
     no: 'Nu',
+    back: 'Înapoi',
+    backHome: 'Înapoi la pagina principală',
+  },
+  notFoundPage: {
+    title: 'Pagina nu există',
+    code: '404',
+    description:
+      'Pagina pe care o cauți a fost mutată sau nu a existat niciodată. Verifică adresa sau întoarce-te la pagina principală.',
+  },
+  forbiddenPage: {
+    title: 'Acces interzis',
+    code: '403',
+    description:
+      'Nu ai permisiuni pentru a accesa această pagină. Dacă crezi că este o greșeală, contactează administratorul.',
   },
 } as const;
 
