@@ -1,4 +1,10 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
+
+// Use override:true so .env values take precedence over any pre-existing
+// (possibly empty) values in process.env. On Windows in particular, some
+// shells pre-populate variables as empty strings which would otherwise
+// prevent dotenv from setting them.
+dotenv.config({ override: true });
 
 function required(key: string): string {
   const value = process.env[key];
