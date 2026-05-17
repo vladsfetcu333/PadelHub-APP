@@ -234,6 +234,7 @@ From `apps/api` (`-w apps/api`):
 | `db:reset`         | DESTRUCTIVE — drop & recreate DB                        |
 | `db:seed`          | Minimal seed (admin + 5 players + 10 clubs)             |
 | `db:seed:demo`     | Full demo seed (67 users · 18 clubs · 400 matches · …)  |
+| `db:update:photos` | Refresh club covers from curated Unsplash padel URLs    |
 | `db:studio`        | Prisma Studio (DB GUI on port 5555)                     |
 | `ingest:knowledge` | Embed the chatbot knowledge base into Postgres          |
 | `test`             | Vitest unit tests (Glicko-2 + compatibility — 49 tests) |
