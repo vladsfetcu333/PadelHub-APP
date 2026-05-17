@@ -12,6 +12,7 @@
     "db:studio": "prisma studio",
     "db:reset": "prisma migrate reset --force",
     "db:seed:demo": "tsx prisma/seed-demo.ts",
+    "db:update:photos": "tsx prisma/scripts/update-club-photos.ts",
     "ingest:knowledge": "tsx src/scripts/ingest-knowledge.ts",
     "lint": "eslint src --ext .ts",
     "typecheck": "tsc --noEmit",

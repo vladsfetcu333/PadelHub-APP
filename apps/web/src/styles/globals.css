@@ -5,32 +5,33 @@
 @layer base {
   :root {
     --background: 0 0% 100%;
-    --foreground: 160 10% 10%;
+    --foreground: 160 25% 8%;
 
-    --muted: 160 8% 95%;
-    --muted-foreground: 160 5% 45%;
+    --muted: 160 14% 96%;
+    --muted-foreground: 160 8% 42%;
 
     --card: 0 0% 100%;
-    --card-foreground: 160 10% 10%;
+    --card-foreground: 160 25% 8%;
 
-    --border: 160 10% 88%;
-    --input: 160 10% 88%;
+    --border: 160 14% 90%;
+    --input: 160 14% 90%;
 
-    --primary: 153 68% 19%;
+    /* Primary = brand-700 (emerald 700) */
+    --primary: 158 84% 24%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 160 8% 95%;
-    --secondary-foreground: 153 68% 19%;
+    --secondary: 160 14% 96%;
+    --secondary-foreground: 158 84% 24%;
 
-    --accent: 153 68% 19%;
+    --accent: 158 64% 52%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --ring: 153 68% 19%;
+    --ring: 158 84% 30%;
 
-    --radius: 0.5rem;
+    --radius: 0.625rem;
   }
 
   * {
@@ -38,7 +39,67 @@
     box-sizing: border-box;
   }
 
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
   body {
     @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings:
+      'cv11' 1,
+      'ss01' 1,
+      'ss03' 1;
+  }
+
+  ::selection {
+    background: hsl(var(--primary) / 0.18);
+    color: hsl(var(--foreground));
+  }
+
+  /* Focus rings — visible but tasteful */
+  :focus-visible {
+    outline: none;
+  }
+
+  /* Subtle scrollbar */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.4);
+  }
+}
+
+@layer utilities {
+  /* Gradient text helper */
+  .text-gradient {
+    background: linear-gradient(135deg, hsl(var(--primary)), #34d399 60%, #84cc16);
+    background-size: 200% 200%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* Frosted-glass card */
+  .glass {
+    background: rgba(255, 255, 255, 0.62);
+    backdrop-filter: blur(16px) saturate(140%);
+    -webkit-backdrop-filter: blur(16px) saturate(140%);
+    border: 1px solid rgba(255, 255, 255, 0.45);
+  }
+
+  /* Tight uppercase eyebrow text */
+  .eyebrow {
+    @apply text-xs font-semibold uppercase tracking-[0.18em] text-brand-700;
   }
 }
