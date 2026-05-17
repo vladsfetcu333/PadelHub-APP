@@ -15,6 +15,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { NotificationBell } from '@/components/NotificationBell';
 import { ChatWidget } from '@/components/chat/ChatWidget';
 import { Button } from '@/components/ui/button';
+import { AppIcon, Wordmark } from '@/components/brand/PadelHubLogo';
 
 export default function Layout() {
   const { pathname } = useLocation();
@@ -73,13 +74,11 @@ export default function Layout() {
           {/* Logo */}
           <Link
             to="/"
-            className="group flex min-w-0 items-center gap-2.5 font-display text-lg font-bold tracking-tight text-ink-950"
+            className="group flex min-w-0 items-center gap-2.5"
+            aria-label="PadelHub — acasă"
           >
-            <span className="relative inline-flex h-9 w-9 flex-shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-tr from-brand-700 via-brand-500 to-lime2-400 shadow-soft transition-transform group-hover:scale-105">
-              <span className="absolute inset-0 bg-gradient-to-tr from-transparent to-white/20" />
-              <span className="relative text-base font-extrabold text-white">P</span>
-            </span>
-            <span className="hidden truncate sm:inline">Padel Platform</span>
+            <AppIcon className="h-9 w-9 flex-shrink-0 transition-transform group-hover:scale-105" />
+            <Wordmark className="hidden truncate text-lg sm:inline" />
           </Link>
 
           {/* Desktop nav */}
@@ -168,11 +167,9 @@ export default function Layout() {
           <div className="grid grid-cols-1 gap-12 md:grid-cols-4">
             {/* Brand */}
             <div className="md:col-span-1">
-              <div className="flex items-center gap-2.5 font-display text-lg font-bold text-white">
-                <span className="relative inline-flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-tr from-brand-700 via-brand-500 to-lime2-400 shadow-soft">
-                  <span className="text-base font-extrabold text-white">P</span>
-                </span>
-                Padel Platform
+              <div className="flex items-center gap-2.5">
+                <AppIcon className="h-9 w-9" />
+                <Wordmark tone="light" className="text-lg" />
               </div>
               <p className="mt-4 text-sm leading-relaxed text-ink-400">
                 Prima platformă din România dedicată jucătorilor de padel. Găsește parteneri,
@@ -269,7 +266,7 @@ export default function Layout() {
           </div>
 
           <div className="mt-12 flex flex-col items-start justify-between gap-3 border-t border-ink-800 pt-6 text-xs text-ink-500 sm:flex-row sm:items-center">
-            <p>© 2026 Padel Platform. Toate drepturile rezervate.</p>
+            <p>© 2026 PadelHub. Toate drepturile rezervate.</p>
             <p className="font-medium text-ink-400">
               Construit cu React, Express, PostgreSQL + pgvector și Claude.
             </p>

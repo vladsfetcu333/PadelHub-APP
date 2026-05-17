@@ -73,7 +73,7 @@ export default function TournamentDisplayPage() {
 
       {/* Footer */}
       <div className="border-t border-white/10 px-12 py-3 text-center text-sm text-white/70">
-        Padel Platform · Mod TV · se actualizează automat
+        PadelHub · Mod TV · se actualizează automat
       </div>
     </div>
   );
