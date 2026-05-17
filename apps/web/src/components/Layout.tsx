@@ -268,7 +268,7 @@ export default function Layout() {
           <div className="mt-12 flex flex-col items-start justify-between gap-3 border-t border-ink-800 pt-6 text-xs text-ink-500 sm:flex-row sm:items-center">
             <p>© 2026 PadelHub. Toate drepturile rezervate.</p>
             <p className="font-medium text-ink-400">
-              Construit cu React, Express, PostgreSQL + pgvector și Claude.
+              Construit cu React, Express și PostgreSQL + pgvector.
             </p>
           </div>
         </div>
