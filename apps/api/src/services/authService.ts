@@ -56,11 +56,11 @@ export async function register(input: RegisterInput): Promise<AuthResponse> {
 
 export async function login(input: LoginInput): Promise<AuthResponse> {
   const user = await prisma.user.findUnique({ where: { email: input.email } });
-  if (!user) throw unauthorized('Invalid credentials');
-  if (!user.isActive) throw unauthorized('Account is disabled');
+  if (!user) throw unauthorized('Email sau parolă incorectă');
+  if (!user.isActive) throw unauthorized('Contul este dezactivat');
 
   const ok = await verifyPassword(input.password, user.passwordHash);
-  if (!ok) throw unauthorized('Invalid credentials');
+  if (!ok) throw unauthorized('Email sau parolă incorectă');
 
   const token = signToken({ userId: user.id, role: user.role });
   return { token, user: toSelfUser(user) };
