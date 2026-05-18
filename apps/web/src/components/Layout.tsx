@@ -1,6 +1,16 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { ro } from '@padel/shared';
-import { LogOut, User as UserIcon, Heart, Menu, Sparkles, Github, Mail } from 'lucide-react';
+import {
+  LogOut,
+  User as UserIcon,
+  Heart,
+  Menu,
+  Sparkles,
+  Github,
+  Mail,
+  ShieldCheck,
+  Building2,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/store/auth';
 import {
@@ -136,6 +146,16 @@ export default function Layout() {
                   <DropdownMenuItem onClick={() => navigate('/reports/player')}>
                     <Sparkles className="mr-2 h-4 w-4" /> {ro.nav.reports}
                   </DropdownMenuItem>
+                  {(user.role === 'CLUB_OWNER' || user.role === 'ADMIN') && (
+                    <DropdownMenuItem onClick={() => navigate('/reports/club')}>
+                      <Building2 className="mr-2 h-4 w-4" /> Raport club
+                    </DropdownMenuItem>
+                  )}
+                  {user.role === 'ADMIN' && (
+                    <DropdownMenuItem onClick={() => navigate('/admin/reports')}>
+                      <ShieldCheck className="mr-2 h-4 w-4" /> Panou admin
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleLogout}>
                     <LogOut className="mr-2 h-4 w-4" /> {ro.nav.logout}
