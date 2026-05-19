@@ -3,7 +3,7 @@ import { prisma } from '../lib/prisma.js';
 import { hashPassword, verifyPassword } from '../lib/password.js';
 import { signToken } from '../lib/jwt.js';
 import { toSelfUser } from '../lib/userDto.js';
-import { badRequest, conflict, notFound, unauthorized } from '../lib/httpError.js';
+import { badRequest, conflict, notFound, unauthorized, HttpError } from '../lib/httpError.js';
 import { initialRatingFromLevel } from '../lib/rating/glicko2.js';
 import { createNotification } from './notificationService.js';
 
@@ -61,6 +61,17 @@ export async function login(input: LoginInput): Promise<AuthResponse> {
 
   const ok = await verifyPassword(input.password, user.passwordHash);
   if (!ok) throw unauthorized('Email sau parolă incorectă');
+
+  // Suspension check — admins are exempt so a suspended admin can still
+  // recover the account themselves. Players / club owners are bounced
+  // with a clear message containing the documented reason.
+  if (user.isSuspended && user.role !== 'ADMIN') {
+    const reason = user.suspendedReason ?? 'fără motiv specificat';
+    throw new HttpError(
+      403,
+      `Contul tău este suspendat. Motiv: ${reason}. Contactează un administrator.`,
+    );
+  }
 
   const token = signToken({ userId: user.id, role: user.role });
   return { token, user: toSelfUser(user) };

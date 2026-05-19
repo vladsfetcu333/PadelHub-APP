@@ -67,6 +67,12 @@ model User {
   isVerified      Boolean   @default(false)
   emailVerifiedAt DateTime?
 
+  // Admin suspension (Phase 5 — admin user management)
+  isSuspended     Boolean   @default(false)
+  suspendedAt     DateTime?
+  suspendedReason String?
+  suspendedBy     String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

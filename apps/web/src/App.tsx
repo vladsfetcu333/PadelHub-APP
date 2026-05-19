@@ -24,6 +24,8 @@ import TournamentDisplayPage from '@/pages/tournaments/TournamentDisplayPage';
 import PlayerReportPage from '@/pages/reports/PlayerReportPage';
 import ClubReportPage from '@/pages/reports/ClubReportPage';
 import AdminReportPage from '@/pages/reports/AdminReportPage';
+import AdminUsersListPage from '@/pages/admin/AdminUsersListPage';
+import AdminUserDetailPage from '@/pages/admin/AdminUserDetailPage';
 import NotificationsPage from '@/pages/NotificationsPage';
 import NotFoundPage from '@/pages/NotFoundPage';
 import { RequireAuth, RequireRole } from '@/components/RouteGuards';
@@ -157,6 +159,22 @@ export default function App() {
             element={
               <RequireRole roles={['ADMIN']}>
                 <AdminReportPage />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/admin/users"
+            element={
+              <RequireRole roles={['ADMIN']}>
+                <AdminUsersListPage />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/admin/users/:userId"
+            element={
+              <RequireRole roles={['ADMIN']}>
+                <AdminUserDetailPage />
               </RequireRole>
             }
           />

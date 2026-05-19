@@ -10,6 +10,7 @@ import {
   Mail,
   ShieldCheck,
   Building2,
+  Users,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/store/auth';
@@ -152,9 +153,14 @@ export default function Layout() {
                     </DropdownMenuItem>
                   )}
                   {user.role === 'ADMIN' && (
-                    <DropdownMenuItem onClick={() => navigate('/admin/reports')}>
-                      <ShieldCheck className="mr-2 h-4 w-4" /> Panou admin
-                    </DropdownMenuItem>
+                    <>
+                      <DropdownMenuItem onClick={() => navigate('/admin/reports')}>
+                        <ShieldCheck className="mr-2 h-4 w-4" /> Panou admin
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => navigate('/admin/users')}>
+                        <Users className="mr-2 h-4 w-4" /> Utilizatori
+                      </DropdownMenuItem>
+                    </>
                   )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleLogout}>

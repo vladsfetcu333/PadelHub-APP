@@ -15,6 +15,7 @@ import tournamentsRouter from './routes/tournaments.js';
 import reportsRouter from './routes/reports.js';
 import notificationsRouter from './routes/notifications.js';
 import chatRouter from './routes/chat.js';
+import adminUsersRouter from './routes/adminUsers.js';
 import { startMatchExpiryJob } from './services/matchService.js';
 
 const app = express();
@@ -34,6 +35,7 @@ app.use('/api/tournaments', tournamentsRouter);
 app.use('/api/reports', reportsRouter);
 app.use('/api/notifications', notificationsRouter);
 app.use('/api/chat', chatRouter);
+app.use('/api/admin/users', adminUsersRouter);
 
 app.use(errorHandler);
 
