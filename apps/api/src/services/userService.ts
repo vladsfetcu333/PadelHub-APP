@@ -8,6 +8,7 @@ import type {
 import { MAX_FAVORITE_CLUBS } from '@padel/shared';
 import { prisma } from '../lib/prisma.js';
 import { toPublicUser, toSelfUser } from '../lib/userDto.js';
+import { toClubDto } from '../lib/clubDto.js';
 import { badRequest, conflict, notFound, forbidden } from '../lib/httpError.js';
 
 export async function updateMyProfile(userId: string, input: UpdateProfileInput) {
@@ -93,7 +94,12 @@ export async function listMyFavoriteClubs(userId: string) {
     include: { club: { include: { courts: true } } },
     orderBy: { createdAt: 'desc' },
   });
-  return rows.map((r) => r.club);
+  // Run through toClubDto so the response matches the ClubDto shape
+  // (photoObjects + URL-only photos array). Without this, after the
+  // Phase 5 photos String → Json migration the raw row leaks
+  // object-form photos into `club.photos`, breaking <img src={…[0]}>
+  // wherever the favorites are rendered.
+  return rows.map((r) => toClubDto(r.club));
 }
 
 export async function addFavoriteClub(userId: string, clubId: string) {
