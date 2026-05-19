@@ -54,9 +54,12 @@ async function main() {
     const club = clubs[i]!;
     const photoId = PADEL_PHOTOS[i % PADEL_PHOTOS.length]!;
     const url = buildUrl(photoId);
+    // Photos are now native JSON objects per Phase 5 Part E. We write
+    // a single MAIN-category entry; cap photos at MAX_CLUB_PHOTOS is
+    // enforced by the upload endpoint, not this admin override.
     await prisma.club.update({
       where: { id: club.id },
-      data: { photos: JSON.stringify([url]) },
+      data: { photos: [{ url, category: 'MAIN', order: 0 }] },
     });
     console.log(`  ✓ ${club.name} → ${photoId}`);
   }

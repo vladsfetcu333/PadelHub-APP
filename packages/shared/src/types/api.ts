@@ -74,6 +74,26 @@ export interface CourtDto {
   isActive: boolean;
 }
 
+export const PHOTO_CATEGORIES = [
+  'MAIN',
+  'COURTS',
+  'LOCKER_ROOM',
+  'FACILITIES',
+  'EXTERIOR',
+] as const;
+export type ClubPhotoCategory = (typeof PHOTO_CATEGORIES)[number];
+
+export interface ClubPhotoDto {
+  url: string;
+  category: ClubPhotoCategory;
+  caption?: string;
+  order: number;
+}
+
+/** Max photos per club enforced at the application layer (POST /photos
+ *  returns 400 when this would be exceeded). */
+export const MAX_CLUB_PHOTOS = 5;
+
 export interface ClubDto {
   id: string;
   slug: string;
@@ -86,7 +106,13 @@ export interface ClubDto {
   phone: string | null;
   email: string | null;
   website: string | null;
+  /** Plain URL list — kept for backward compat with existing UI that
+   *  only renders a single cover (ClubCard, map markers). New gallery
+   *  UI should prefer `photoObjects`. */
   photos: string[];
+  /** Full metadata on each photo (category, optional caption, order).
+   *  Photos are returned sorted by `order` ascending. */
+  photoObjects: ClubPhotoDto[];
   hasLockerRoom: boolean;
   hasShowers: boolean;
   hasCafe: boolean;

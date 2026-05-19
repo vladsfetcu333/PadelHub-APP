@@ -173,7 +173,10 @@ model Club {
   email       String?
   website     String?
 
-  photos String @default("[]")
+  // Phase 5 Part E: array of `{ url, category, caption?, order }` objects.
+  // Migrated from `String` to native `Json` so we can index/query if we
+  // ever need to. Max 5 photos per club enforced at the app layer.
+  photos Json @default("[]")
 
   hasLockerRoom   Boolean @default(false)
   hasShowers      Boolean @default(false)

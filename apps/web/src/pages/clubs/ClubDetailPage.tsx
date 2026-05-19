@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Heart, BadgeCheck, MapPin, Globe, Phone } from 'lucide-react';
-import { ro, type ClubDto } from '@padel/shared';
+import { ro, type ClubDto, type ClubPhotoDto } from '@padel/shared';
 import { toast } from 'sonner';
 
 import { api, extractErrorMessage } from '@/lib/api';
@@ -9,6 +9,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { CourtTypeBadge } from '@/components/padel/CourtTypeBadge';
 import { ClubsMap } from '@/components/clubs/ClubsMap';
+import { ClubPhotoGallery } from '@/components/clubs/ClubPhotoGallery';
+import { ClubPhotoManager } from '@/components/clubs/ClubPhotoManager';
 import { useAuth } from '@/store/auth';
 
 export default function ClubDetailPage() {
@@ -120,6 +122,11 @@ export default function ClubDetailPage() {
         </div>
       </div>
 
+      {/* Photo gallery — full width, above the two-column layout */}
+      <div className="mb-6">
+        <ClubPhotoGallery photos={club.photoObjects} />
+      </div>
+
       <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
         <div className="md:col-span-2 space-y-6">
           {club.description && (
@@ -170,6 +177,19 @@ export default function ClubDetailPage() {
             center={{ lat: club.latitude, lng: club.longitude }}
             height="320px"
           />
+
+          {/* Owner / admin photo management panel */}
+          {user && (user.role === 'ADMIN' || club.ownerId === user.id) && (
+            <ClubPhotoManager
+              clubId={club.id}
+              photos={club.photoObjects}
+              onPhotosChange={(next: ClubPhotoDto[]) =>
+                setClub((c) =>
+                  c ? { ...c, photoObjects: next, photos: next.map((p) => p.url) } : c,
+                )
+              }
+            />
+          )}
         </div>
 
         <aside className="space-y-4">

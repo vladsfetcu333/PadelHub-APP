@@ -6,6 +6,7 @@ export * from './schemas/openMatch';
 export * from './schemas/match';
 export * from './schemas/tournament';
 export * from './schemas/admin';
+export * from './schemas/clubPhoto';
 export * from './types/api';
 export * from './types/openMatch';
 export * from './types/match';

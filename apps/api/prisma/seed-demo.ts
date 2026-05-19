@@ -880,9 +880,7 @@ async function seedUsers(): Promise<SeededUser[]> {
 // Section 2 — clubs
 // ─────────────────────────────────────────────────────────────────────
 
-async function seedClubs(
-  owners: SeededUser[],
-): Promise<
+async function seedClubs(owners: SeededUser[]): Promise<
   Array<{
     id: string;
     name: string;
@@ -908,9 +906,21 @@ async function seedClubs(
     const t = CLUBS[i]!;
     // Assign each club to a club owner round-robin
     const owner = owners[i % owners.length]!;
+    // Photos are now native JSON objects per the Phase 5 Part E schema
+    // (`photos Json @default("[]")`). The two seeded entries become
+    // MAIN + COURTS placeholders; `db:update:photos` typically overwrites
+    // these with curated Unsplash padel photos.
     const photos = [
-      `https://picsum.photos/seed/${slug(t.name)}/800/450`,
-      `https://picsum.photos/seed/${slug(t.name)}-2/800/450`,
+      {
+        url: `https://picsum.photos/seed/${slug(t.name)}/800/450`,
+        category: 'MAIN' as const,
+        order: 0,
+      },
+      {
+        url: `https://picsum.photos/seed/${slug(t.name)}-2/800/450`,
+        category: 'COURTS' as const,
+        order: 1,
+      },
     ];
     const businessHours: Record<string, { open: string; close: string } | null> = {
       monday: { open: '07:00', close: '23:00' },
@@ -932,7 +942,7 @@ async function seedClubs(
         longitude: t.longitude,
         phone: `+40 72${faker.number.int({ min: 1, max: 9 })} ${faker.string.numeric(3)} ${faker.string.numeric(3)}`,
         website: null,
-        photos: JSON.stringify(photos),
+        photos,
         businessHours: JSON.stringify(businessHours),
         ownerId: owner.id,
         isVerified: true,
