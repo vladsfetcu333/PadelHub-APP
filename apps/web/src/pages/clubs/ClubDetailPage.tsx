@@ -48,19 +48,32 @@ export default function ClubDetailPage() {
   }, [slug, user?.id]);
 
   const toggleFavorite = async () => {
-    if (!club || !user) return;
+    if (!club || !user || pending) return;
+    // Snapshot the current state so we can revert on error.
+    const wasFavorite = isFavorite;
     setPending(true);
+    // Optimistic update for snappy feedback. We'll reconcile against the
+    // server's actual favorites list right after the mutation.
+    setIsFavorite(!wasFavorite);
     try {
-      if (isFavorite) {
+      if (wasFavorite) {
         await api.delete(`/api/users/me/favorite-clubs/${club.id}`);
-        setIsFavorite(false);
-        toast.success(ro.clubs.favoriteRemoved);
       } else {
         await api.post(`/api/users/me/favorite-clubs/${club.id}`);
-        setIsFavorite(true);
-        toast.success(ro.clubs.favoriteAdded);
       }
+      // Refetch the canonical favorites list so the badge always
+      // matches the DB, even if the server silently no-ops (e.g. a
+      // duplicate POST on a club we already had).
+      try {
+        const { data: favs } = await api.get<ClubDto[]>('/api/users/me/favorite-clubs');
+        setIsFavorite(favs.some((f) => f.id === club.id));
+      } catch {
+        /* leave the optimistic value in place if the refetch fails */
+      }
+      toast.success(wasFavorite ? ro.clubs.favoriteRemoved : ro.clubs.favoriteAdded);
     } catch (err) {
+      // Revert optimistic flip on error.
+      setIsFavorite(wasFavorite);
       toast.error(extractErrorMessage(err, ro.clubs.favoriteLimit));
     } finally {
       setPending(false);
