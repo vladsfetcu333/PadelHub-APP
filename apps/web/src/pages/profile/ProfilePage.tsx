@@ -11,13 +11,20 @@ import { EditProfileForm } from '@/components/profile/EditProfileForm';
 import { AvailabilityEditor } from '@/components/profile/AvailabilityEditor';
 import { MatchingPreferencesForm } from '@/components/profile/MatchingPreferencesForm';
 import { RatingTab } from '@/components/profile/RatingTab';
+import { FavoriteClubsList } from '@/components/profile/FavoriteClubsList';
 
 export default function ProfilePage() {
   const user = useAuth((s) => s.user);
   const [params, setParams] = useSearchParams();
   const tabParam = params.get('tab');
   const tab =
-    tabParam === 'availability' ? 'availability' : tabParam === 'rating' ? 'rating' : 'profile';
+    tabParam === 'availability'
+      ? 'availability'
+      : tabParam === 'rating'
+        ? 'rating'
+        : tabParam === 'favorites'
+          ? 'favorites'
+          : 'profile';
 
   if (!user) return null;
 
@@ -58,6 +65,7 @@ export default function ProfilePage() {
           <TabsTrigger value="profile">{ro.profile.tabProfile}</TabsTrigger>
           <TabsTrigger value="availability">{ro.profile.tabAvailability}</TabsTrigger>
           <TabsTrigger value="rating">{ro.rating.tabTitle}</TabsTrigger>
+          <TabsTrigger value="favorites">Cluburi favorite</TabsTrigger>
         </TabsList>
         <TabsContent value="profile">
           <Card>
@@ -88,6 +96,9 @@ export default function ProfilePage() {
         </TabsContent>
         <TabsContent value="rating">
           <RatingTab user={user} />
+        </TabsContent>
+        <TabsContent value="favorites">
+          <FavoriteClubsList />
         </TabsContent>
       </Tabs>
     </div>

@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   Building2,
   Users,
+  CalendarDays,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/store/auth';
@@ -142,7 +143,10 @@ export default function Layout() {
                     <UserIcon className="mr-2 h-4 w-4" /> {ro.nav.profile}
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate('/profile?tab=availability')}>
-                    <Heart className="mr-2 h-4 w-4" /> {ro.profile.tabAvailability}
+                    <CalendarDays className="mr-2 h-4 w-4" /> {ro.profile.tabAvailability}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate('/profile?tab=favorites')}>
+                    <Heart className="mr-2 h-4 w-4" /> Cluburi favorite
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate('/reports/player')}>
                     <Sparkles className="mr-2 h-4 w-4" /> {ro.nav.reports}
