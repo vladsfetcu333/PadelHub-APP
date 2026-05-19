@@ -35,6 +35,7 @@ const CATEGORY_BY_FILE: Record<string, string> = {
   'padel-rules.md': 'rules',
   'padel-glossary.md': 'glossary',
   'padel-tactics-basic.md': 'tactics',
+  'padel-equipment.md': 'equipment',
   'app-guide.md': 'app',
   'faq.md': 'faq',
   'glicko-rating-explained.md': 'rating',
