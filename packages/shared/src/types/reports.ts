@@ -96,6 +96,14 @@ export interface AdminReportDto {
     byType: Partial<Record<MatchTypeKey, number>>;
     byClub: Array<{ clubId: string; clubName: string; count: number }>;
   };
+  topPlayers: Array<{
+    userId: string;
+    username: string;
+    fullName: string;
+    matchCount: number;
+    rating: number;
+    winRate: number;
+  }>;
   tournaments: {
     total: number;
     byFormat: Partial<Record<TournamentFormat, number>>;

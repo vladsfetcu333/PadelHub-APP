@@ -512,6 +512,41 @@ export async function buildAdminReport(
     .slice(0, 10)
     .map(([clubId, v]) => ({ clubId, clubName: v.clubName, count: v.count }));
 
+  // Top players by match count in the period — keeps the admin report
+  // self-contained so the UI doesn't need a separate user-leaderboard
+  // query just for this card.
+  const playerStats = new Map<string, { played: number; won: number }>();
+  for (const m of allMatches) {
+    for (const id of [m.team1Player1Id, m.team1Player2Id]) {
+      const s = playerStats.get(id) ?? { played: 0, won: 0 };
+      s.played++;
+      if (m.winnerTeam === 1) s.won++;
+      playerStats.set(id, s);
+    }
+    for (const id of [m.team2Player1Id, m.team2Player2Id]) {
+      const s = playerStats.get(id) ?? { played: 0, won: 0 };
+      s.played++;
+      if (m.winnerTeam === 2) s.won++;
+      playerStats.set(id, s);
+    }
+  }
+  const userById = new Map(users.map((u) => [u.id, u]));
+  const topPlayers = [...playerStats.entries()]
+    .map(([userId, s]) => {
+      const u = userById.get(userId);
+      return {
+        userId,
+        username: u?.username ?? 'unknown',
+        fullName: u ? `${u.firstName} ${u.lastName}`.trim() : 'Unknown',
+        matchCount: s.played,
+        rating: u ? Math.round(u.glickoRating) : 0,
+        winRate: s.played === 0 ? 0 : Math.round((s.won / s.played) * 1000) / 10,
+      };
+    })
+    .filter((p) => p.username !== 'unknown')
+    .sort((a, b) => b.matchCount - a.matchCount)
+    .slice(0, 25);
+
   // Tournaments
   const tournaments = await prisma.tournament.findMany({
     where: { startDate: { gte: periodFrom, lte: periodTo } },
@@ -550,6 +585,7 @@ export async function buildAdminReport(
       byType,
       byClub: byClubTop,
     },
+    topPlayers,
     tournaments: {
       total: tournaments.length,
       byFormat,
