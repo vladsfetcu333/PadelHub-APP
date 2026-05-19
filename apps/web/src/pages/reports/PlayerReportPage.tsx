@@ -16,8 +16,10 @@ import {
 } from 'recharts';
 import type { PlayerReportDto } from '@padel/shared';
 import { toast } from 'sonner';
+import { Download, Loader2 } from 'lucide-react';
 
 import { api, extractErrorMessage } from '@/lib/api';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/store/auth';
 
@@ -29,6 +31,39 @@ export default function PlayerReportPage() {
   const targetUserId = params['userId'] ?? me?.id;
   const [report, setReport] = useState<PlayerReportDto | null>(null);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
+
+  const downloadCsv = async () => {
+    if (!targetUserId) return;
+    setExporting(true);
+    try {
+      const res = await api.get(`/api/reports/player/${targetUserId}/export.csv`, {
+        responseType: 'blob',
+      });
+      // Parse the server-set filename out of Content-Disposition if present.
+      // Fall back to a sane default if the header is missing or the browser
+      // strips it (e.g. CORS preflight without expose-headers).
+      const cd = (res.headers as Record<string, string | undefined>)['content-disposition'] ?? '';
+      const fromHeader = /filename="([^"]+)"/.exec(cd)?.[1];
+      const fallback = `padelhub-stats-${report?.user.username ?? 'export'}.csv`;
+      const filename = fromHeader ?? fallback;
+
+      const blob = res.data as Blob;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success('CSV exportat cu succes.');
+    } catch (err) {
+      toast.error(extractErrorMessage(err));
+    } finally {
+      setExporting(false);
+    }
+  };
 
   useEffect(() => {
     if (!targetUserId) return;
@@ -57,9 +92,25 @@ export default function PlayerReportPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
-      <h1 className="mb-1 text-2xl font-bold">
-        Raport jucător — {r.user.firstName} {r.user.lastName}
-      </h1>
+      <div className="mb-1 flex flex-wrap items-start justify-between gap-3">
+        <h1 className="text-2xl font-bold">
+          Raport jucător — {r.user.firstName} {r.user.lastName}
+        </h1>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={downloadCsv}
+          disabled={exporting}
+          aria-label="Exportă raportul ca fișier CSV"
+        >
+          {exporting ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
+          ) : (
+            <Download className="mr-2 h-4 w-4" aria-hidden="true" />
+          )}
+          Exportă CSV
+        </Button>
+      </div>
       <p className="mb-6 text-sm text-muted-foreground">
         <Link to={`/profile/${r.user.username}`} className="hover:underline">
           @{r.user.username}
